@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import type { Room } from './data';
 import {
@@ -138,7 +137,7 @@ function inferStatusFromCanvas(canvas: HTMLCanvasElement): 'normal' | 'alert' | 
   const { data } = ctx.getImageData(sx, sy, sw, sh);
   let totalR = 0, totalG = 0, bright = 0;
   for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const r = data[i], g = data[i + 1];
     if (r > 140 || g > 140) {
       totalR += r;
       totalG += g;

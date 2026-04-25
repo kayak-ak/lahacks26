@@ -102,3 +102,14 @@ export function SendIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function GamepadIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <rect x="2" y="6" width="20" height="12" rx="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M6 12h4M8 10v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="16" cy="10.5" r="1.5" fill="currentColor" />
+      <circle cx="14" cy="13.5" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
