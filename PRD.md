@@ -14,7 +14,7 @@ Nurses spend up to 35% of their shift on administrative tasks — call-outs, fam
 |---------|------|------------|
 | **Floor Nurse (Primary)** | Bedside care provider | Hands-free updates, automatic rounding logs, quick-shift scheduling |
 | **Head Nurse / Charge Nurse (Primary)** | Floor operations lead | Real-time ward visibility, shift-fill alerts, compliance dashboards |
-| **Patient Family (Secondary)** | Recipient of care updates | Proactive call/SMS updates on loved one's status |
+| **Patient Family (Secondary)** | Unauthenticated external recipient | Proactive call/SMS updates on loved one's status; no login or dashboard access |
 | **Hospital Admin (Tertiary)** | Resource planner | Aggregate compliance metrics, staffing analytics |
 
 ## 3. Core Objectives
@@ -32,7 +32,7 @@ Nurses spend up to 35% of their shift on administrative tasks — call-outs, fam
 |-------|-----------|-----------|
 | API Server | **Flask** (Python) | Lightweight, fast to stand up; native Python ecosystem for ML/CV interop. Hosts REST endpoints, WebSocket feeds, and LLM orchestration. |
 | Database | **Supabase** (PostgreSQL) | Managed Postgres with real-time subscriptions (for dashboard push), built-in auth, row-level security. Stores patients, rooms, shifts, rounding logs, alerts. |
-| Auth | **Supabase Auth** | Role-based access (nurse, head nurse, admin) with JWT tokens. |
+| Auth | **Supabase Auth** | Role-based access (nurse, head nurse, admin) with JWT tokens. Patient families are not part of the RBAC system — they interact only via inbound calls/SMS through Twilio. |
 | Real-time | **Supabase Realtime** | Pushes room status changes, alerts, and rounding events to the frontend over WebSocket. |
 
 ### 4.2 AI & Agent Layer
@@ -164,10 +164,10 @@ shifts (id, nurse_id, date, time_slot, status)  -- status: scheduled | confirmed
 rounding_logs (id, room_id, nurse_id, entered_at, sanitized, duration_sec)
 alerts (id, type, room_id, priority, message, created_at, resolved_at)
 events (id, type, payload_json, created_at)  -- audit trail for all agent actions
-family_contacts (id, patient_id, name, phone, preferred_channel)  -- sms | voice
+family_contacts (id, patient_id, name, phone, preferred_channel)  -- sms | voice; no Supabase Auth identity — contacts are outbound-only targets
 ```
 
-- **RLS policies**: Nurses can only read/write their floor's data; head nurses get floor-wide access; admins get hospital-wide access.
+- **RLS policies**: Nurses can only read/write their floor's data; head nurses get floor-wide access; admins get hospital-wide access. Patient families have no authenticated access — updates are pushed outbound only (calls/SMS via Twilio).
 - **Realtime channels**: `rooms` table changes broadcast on `room-updates` channel; `alerts` on `alerts` channel.
 
 ## 8. API Endpoints (Flask)
