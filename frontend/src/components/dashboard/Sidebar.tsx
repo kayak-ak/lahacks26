@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CubeIcon, MicrophoneIcon, PulseIcon } from './icons';
 
 const navItems = [
@@ -14,7 +15,15 @@ type SidebarProps = {
 };
 
 export function Sidebar({ activeItem = 'dashboard' }: SidebarProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(() => {
+    const saved = localStorage.getItem('sidebar-open');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const toggleSidebar = (open: boolean) => {
+    setIsOpen(open);
+    localStorage.setItem('sidebar-open', String(open));
+  };
 
   return (
     <aside
@@ -24,60 +33,119 @@ export function Sidebar({ activeItem = 'dashboard' }: SidebarProps) {
       )}
     >
       <div className={cn("flex items-center gap-3 px-2 min-h-[40px]", !isOpen && "justify-center")}>
-        <div className="grid place-items-center w-10 h-10 shrink-0 rounded-[18px] text-white bg-gradient-to-br from-blue-500 to-blue-600 shadow-[0_10px_15px_rgba(59,130,246,0.24)]">
-          <PulseIcon className="w-5 h-5 shrink-0" />
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={cn(
+                "relative grid place-items-center w-10 h-10 shrink-0 rounded-full text-white bg-gradient-to-br from-blue-500 to-blue-600 transition-all duration-200",
+                !isOpen && "cursor-pointer group"
+              )}
+              onClick={() => { if (!isOpen) toggleSidebar(true); }}
+            >
+              <PulseIcon className={cn("w-5 h-5 shrink-0 transition-opacity", !isOpen && "group-hover:opacity-0")} />
+              {!isOpen && (
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="absolute w-5 h-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rotate-180"
+                >
+                  <path
+                    d="M15 18l-6-6 6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+            </div>
+          </TooltipTrigger>
+          {!isOpen && (
+            <TooltipContent side="right">
+              <p>Expand sidebar</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
         {isOpen && (
-          <span className="text-[1.75rem] font-semibold tracking-[0.02em] text-blue-900 whitespace-nowrap">
+          <span className="text-xl font-semibold tracking-[0.02em] text-blue-900 whitespace-nowrap">
             NurseFlow
           </span>
+        )}
+        {isOpen && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                onClick={() => toggleSidebar(false)}
+                className="ml-auto shrink-0 flex items-center justify-center text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                aria-label="Collapse Sidebar"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="w-5 h-5 shrink-0"
+                >
+                  <path
+                    d="M15 18l-6-6 6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Collapse sidebar</p>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 
       <nav className="flex flex-col gap-2 mt-4" aria-label="Primary">
         {navItems.map(({ label, icon: Icon, href, key }) => (
-          <Button
-            key={label}
-            variant={activeItem === key ? 'secondary' : 'ghost'}
-            asChild
-            className={cn(
-              'gap-3 py-3 rounded-xl text-[0.95rem] font-medium h-auto justify-start overflow-hidden',
-              activeItem === key
-                ? 'bg-blue-50 text-blue-700 shadow-sm hover:bg-blue-100'
-                : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50/50',
-              !isOpen && 'justify-center px-0'
+          <Tooltip key={label}>
+            <TooltipTrigger asChild>
+              <Button
+                variant={activeItem === key ? 'secondary' : 'ghost'}
+                asChild
+                className={cn(
+                  'gap-3 py-3 rounded-xl text-[0.95rem] font-medium h-auto justify-start overflow-hidden',
+                  activeItem === key
+                    ? 'bg-blue-50 text-blue-700 shadow-sm hover:bg-blue-100'
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50/50',
+                  !isOpen && 'justify-center px-0'
+                )}
+              >
+                <a href={href} aria-current={activeItem === key ? 'page' : undefined}>
+                  <Icon className="w-5 h-5 shrink-0" />
+                  {isOpen && <span>{label}</span>}
+                </a>
+              </Button>
+            </TooltipTrigger>
+            {!isOpen && (
+              <TooltipContent side="right">
+                <p>{label}</p>
+              </TooltipContent>
             )}
-          >
-            <a href={href} aria-current={activeItem === key ? 'page' : undefined}>
-              <Icon className="w-5 h-5 shrink-0" />
-              {isOpen && <span>{label}</span>}
-            </a>
-          </Button>
+          </Tooltip>
         ))}
       </nav>
 
       <div className="mt-auto px-2">
-        <Button
-          variant="ghost"
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex justify-center text-slate-500 hover:text-slate-700 h-10"
-          aria-label={isOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className={cn("w-5 h-5 shrink-0 transition-transform", !isOpen && "rotate-180")}
-          >
-            <path
-              d="M15 18l-6-6 6-6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Button>
+        <div className={cn("flex items-center gap-3 rounded-xl px-2 py-2", !isOpen && "justify-center px-0")}>
+          <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 grid place-items-center text-white text-sm font-bold">
+            AW
+          </div>
+          {isOpen && (
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-semibold text-slate-800 truncate">Atticus Wong</span>
+              <span className="text-xs text-slate-500 truncate">RN · Night Shift</span>
+            </div>
+          )}
+        </div>
       </div>
+
     </aside>
   );
 }
