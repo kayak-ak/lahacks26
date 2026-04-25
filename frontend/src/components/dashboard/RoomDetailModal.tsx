@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,8 @@ import {
   PulseIcon,
   SendIcon,
 } from './icons';
+
+const WS_URL = 'ws://localhost:8765';
 
 type RoomDetailModalProps = {
   room: Room;
@@ -115,6 +118,57 @@ const metricCards = [
 ] as const;
 
 export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
+  const [frameSrc, setFrameSrc] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const ws = new WebSocket(WS_URL);
+    ws.binaryType = 'arraybuffer';
+    wsRef.current = ws;
+
+    ws.onopen = () => setConnected(true);
+    ws.onclose = () => setConnected(false);
+    ws.onerror = () => setConnected(false);
+
+    ws.onmessage = (event: MessageEvent) => {
+      if (event.data instanceof ArrayBuffer) {
+        const blob = new Blob([event.data], { type: 'image/jpeg' });
+        const url = URL.createObjectURL(blob);
+        setFrameSrc((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      }
+    };
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+      setConnected(false);
+      setFrameSrc((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
@@ -152,11 +206,23 @@ export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
               LIVE
             </Badge>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400 text-center">
-              <PulseIcon className="w-12 h-12 text-slate-300" />
-              <strong className="text-[1.15rem] font-medium text-slate-600">{room.streamLabel}</strong>
-              <span className="text-[0.92rem] text-slate-400">{room.cameraLabel}</span>
-            </div>
+            {frameSrc ? (
+              <img
+                className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+                src={frameSrc}
+                alt="Live camera feed"
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400 text-center">
+                <PulseIcon className="w-12 h-12 text-slate-300" />
+                <strong className="text-[1.15rem] font-medium text-slate-600">
+                  {connected ? 'Connecting to camera...' : room.streamLabel}
+                </strong>
+                <span className="text-[0.92rem] text-slate-400">
+                  {connected ? 'Please wait' : room.cameraLabel}
+                </span>
+              </div>
+            )}
           </section>
 
           {/* Vital Signs */}

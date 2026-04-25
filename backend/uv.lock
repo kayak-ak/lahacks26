@@ -202,6 +202,7 @@ dependencies = [
     { name = "supabase" },
     { name = "twilio" },
     { name = "uagents" },
+    { name = "websockets" },
 ]
 
 [package.metadata]
@@ -216,6 +217,7 @@ requires-dist = [
     { name = "supabase", specifier = ">=2.29.0" },
     { name = "twilio", specifier = ">=9.0" },
     { name = "uagents", specifier = ">=0.11" },
+    { name = "websockets", specifier = ">=13.0" },
 ]
 
 [[package]]
