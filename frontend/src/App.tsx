@@ -1,129 +1,89 @@
-import { useState } from 'react';
-import { AdvancedImage, placeholder, lazyload } from '@cloudinary/react';
-import { fill } from '@cloudinary/url-gen/actions/resize';
-import { format, quality } from '@cloudinary/url-gen/actions/delivery';
-import { auto } from '@cloudinary/url-gen/qualifiers/format';
-import { auto as autoQuality } from '@cloudinary/url-gen/qualifiers/quality';
-import { autoGravity } from '@cloudinary/url-gen/qualifiers/gravity';
-import { cld, uploadPreset } from './cloudinary/config';
-import { UploadWidget } from './cloudinary/UploadWidget';
-import type { CloudinaryUploadResult } from './cloudinary/UploadWidget';
+import { useCallback, useEffect, useState } from 'react';
+import { AppTopBar } from './components/AppTopBar';
+import { CameraPage } from './pages/CameraPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { LayoutPage } from './pages/LayoutPage';
 import './App.css';
 
-const hasUploadPreset = Boolean(uploadPreset);
+type AppPath = '/' | '/layout' | '/camera';
+type AppRoute = {
+  path: AppPath;
+  roomNumber?: string;
+};
 
-const PROMPTS_WITH_UPLOAD = [
-  'Create an image gallery with lazy loading and responsive images',
-  'Create a video player that plays a Cloudinary video',
-  'Add image overlays with text or logos',
-];
+function normalizePath(pathname: string): AppPath {
+  const cleanPath = pathname.replace(/\/+$/, '') || '/';
+  if (cleanPath === '/layout') {
+    return '/layout';
+  }
 
-const PROMPTS_WITHOUT_UPLOAD = [
-  "Let's try uploading — help me add an upload preset and upload widget",
-  ...PROMPTS_WITH_UPLOAD,
-];
+  if (cleanPath === '/camera') {
+    return '/camera';
+  }
+
+  return '/';
+}
+
+function readRoute(location: Location): AppRoute {
+  const path = normalizePath(location.pathname);
+  const roomNumber = path === '/camera' ? new URLSearchParams(location.search).get('room') ?? undefined : undefined;
+  return { path, roomNumber };
+}
+
+function buildUrl(path: AppPath, roomNumber?: string): string {
+  if (path !== '/camera' || !roomNumber) {
+    return path;
+  }
+
+  return `${path}?room=${encodeURIComponent(roomNumber)}`;
+}
 
 function App() {
-  const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
-  const [clickedIds, setClickedIds] = useState(new Set<number>());
+  const [currentRoute, setCurrentRoute] = useState<AppRoute>(() => readRoute(window.location));
 
-  const handleUploadSuccess = (result: CloudinaryUploadResult) => {
-    console.log('Upload successful:', result);
-    // result contains everything you need to work with the uploaded asset:
-    //   result.public_id   — Cloudinary asset ID (use with cld.image() for transformations)
-    //   result.secure_url  — direct HTTPS URL to the original file
-    //   result.url         — HTTP URL (prefer secure_url)
-    //   result.width / result.height — image dimensions
-    //   result.format      — file format (e.g. 'jpg', 'png', 'webp')
-    //   result.bytes       — file size in bytes
-    //   result.resource_type — 'image', 'video', or 'raw'
-    setUploadedImageId(result.public_id);
-    setUploadedUrl(result.secure_url); // store the URL to use anywhere in your app
-  };
+  useEffect(() => {
+    const normalizedRoute = readRoute(window.location);
+    const normalizedUrl = buildUrl(normalizedRoute.path, normalizedRoute.roomNumber);
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
 
-  const handleUploadError = (error: Error) => {
-    console.error('Upload error:', error);
-    alert(`Upload failed: ${error.message}`);
-  };
+    if (normalizedUrl !== currentUrl) {
+      window.history.replaceState({}, '', normalizedUrl);
+    }
 
-  const copyPrompt = (text: string, id: number) => {
-    void navigator.clipboard.writeText(text).then(() => {
-      setClickedIds((prev) => new Set(prev).add(id));
-      setTimeout(() => setClickedIds( (prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      }), 2000);
-    });
-  };
+    const handlePopState = () => setCurrentRoute(readRoute(window.location));
+    window.addEventListener('popstate', handlePopState);
 
-  // Display uploaded image if available, otherwise show a sample
-  const imageId = uploadedImageId || 'samples/people/bicycle';
-  
-  const displayImage = cld
-    .image(imageId)
-    .resize(fill().width(600).height(400).gravity(autoGravity()))
-    .delivery(format(auto()))
-    .delivery(quality(autoQuality()));
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleNavigate = useCallback((nextPath: AppPath, options?: { roomNumber?: string }) => {
+    const nextUrl = buildUrl(nextPath, options?.roomNumber);
+    const currentUrl = buildUrl(currentRoute.path, currentRoute.roomNumber);
+
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
+    window.history.pushState({}, '', nextUrl);
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    setCurrentRoute({ path: nextPath, roomNumber: options?.roomNumber });
+  }, [currentRoute.path, currentRoute.roomNumber]);
 
   return (
-    <div className="app">
-      <main className="main-content">
-        <h1>Cloudinary React Starter Kit</h1>
-        <p>This is a ready-to-use development environment with Cloudinary integration.</p>
-        
-        {hasUploadPreset && (
-          <div className="upload-section">
-            <h2>Upload an Image</h2>
-            <UploadWidget
-              onUploadSuccess={handleUploadSuccess}
-              onUploadError={handleUploadError}
-              buttonText="Upload Image"
-            />
-          </div>
-        )}
-
-        <div className="image-section">
-          <h2>Display Image</h2>
-          <AdvancedImage
-            cldImg={displayImage}
-            plugins={[placeholder({ mode: 'blur' }), lazyload()]}
-            alt={uploadedImageId ? 'Your uploaded image' : 'Sample image'}
-            className="display-image"
+    <div className="app-shell">
+      <div className="app-frame">
+        <AppTopBar currentPath={currentRoute.path} onNavigate={handleNavigate} />
+        {currentRoute.path === '/layout' ? (
+          <LayoutPage onOpenCamera={(roomNumber) => handleNavigate('/camera', { roomNumber })} />
+        ) : currentRoute.path === '/camera' ? (
+          <CameraPage
+            selectedRoomNumber={currentRoute.roomNumber}
+            onSelectRoom={(roomNumber) => handleNavigate('/camera', { roomNumber })}
           />
-          {uploadedImageId && (
-            <p className="image-info">Public ID: {uploadedImageId}</p>
-          )}
-          {uploadedUrl && (
-            <p className="image-info">
-              URL:{' '}
-              <a href={uploadedUrl} target="_blank" rel="noopener noreferrer">
-                {uploadedUrl}
-              </a>
-            </p>
-          )}
-        </div>
-
-        <div className="ai-prompts-section">
-          <h2>🤖 Try Asking Your AI Assistant</h2>
-          <p className="prompts-intro">
-            <strong>Copy and paste</strong> one of these prompts into your AI assistant:
-          </p>
-          <ul className="prompts-list">
-            {(hasUploadPreset ? PROMPTS_WITH_UPLOAD : PROMPTS_WITHOUT_UPLOAD).map((text, i) => (
-              <li
-                key={i}
-                onClick={() => copyPrompt(text, i)}
-                title="Click to copy"
-                className={clickedIds.has(i) ? 'clicked' : ''}
-              >
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </main>
+        ) : (
+          <DashboardPage />
+        )}
+      </div>
     </div>
   );
 }

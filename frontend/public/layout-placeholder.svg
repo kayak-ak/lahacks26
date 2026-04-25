@@ -1,0 +1,30 @@
+<svg width="1280" height="800" viewBox="0 0 1280 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="800" rx="32" fill="#F6F9FB"/>
+  <rect x="40" y="40" width="1200" height="720" rx="28" fill="#FFFFFF" stroke="#D9E2E8" stroke-width="8"/>
+  <rect x="450" y="125" width="380" height="550" rx="28" fill="#EFF4F7" stroke="#D9E2E8" stroke-width="6"/>
+  <path d="M640 145V655" stroke="#C3D0D7" stroke-width="4" stroke-dasharray="16 16"/>
+  <path d="M470 250H810" stroke="#C3D0D7" stroke-width="4"/>
+  <path d="M470 545H810" stroke="#C3D0D7" stroke-width="4"/>
+  <rect x="92" y="95" width="255" height="190" rx="22" fill="#E6F6F2" stroke="#BEDFD6" stroke-width="6"/>
+  <rect x="513" y="95" width="255" height="110" rx="18" fill="#F7FAFB" stroke="#D9E2E8" stroke-width="6"/>
+  <rect x="930" y="95" width="255" height="190" rx="22" fill="#FFF3D8" stroke="#F1D58B" stroke-width="6"/>
+  <rect x="92" y="515" width="255" height="190" rx="22" fill="#EDF2F5" stroke="#D9E2E8" stroke-width="6"/>
+  <rect x="930" y="515" width="255" height="190" rx="22" fill="#FFE4DE" stroke="#F0B2A5" stroke-width="6"/>
+  <rect x="513" y="595" width="255" height="110" rx="18" fill="#DDEBFF" stroke="#B8D0F5" stroke-width="6"/>
+  <rect x="545" y="332" width="190" height="120" rx="18" fill="#FFFFFF" stroke="#D9E2E8" stroke-width="6"/>
+  <text x="220" y="188" text-anchor="middle" fill="#173042" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="700">Room 201</text>
+  <text x="220" y="232" text-anchor="middle" fill="#567080" font-family="Segoe UI, Arial, sans-serif" font-size="24">Stable</text>
+  <text x="640" y="160" text-anchor="middle" fill="#173042" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Room 202</text>
+  <text x="640" y="194" text-anchor="middle" fill="#567080" font-family="Segoe UI, Arial, sans-serif" font-size="20">Open bed</text>
+  <text x="1058" y="188" text-anchor="middle" fill="#173042" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="700">Room 203</text>
+  <text x="1058" y="232" text-anchor="middle" fill="#567080" font-family="Segoe UI, Arial, sans-serif" font-size="24">Watchlist</text>
+  <text x="220" y="608" text-anchor="middle" fill="#173042" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="700">Room 206</text>
+  <text x="220" y="652" text-anchor="middle" fill="#567080" font-family="Segoe UI, Arial, sans-serif" font-size="24">Stable</text>
+  <text x="1058" y="608" text-anchor="middle" fill="#173042" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="700">Room 204</text>
+  <text x="1058" y="652" text-anchor="middle" fill="#567080" font-family="Segoe UI, Arial, sans-serif" font-size="24">Priority</text>
+  <text x="640" y="660" text-anchor="middle" fill="#173042" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Room 205</text>
+  <text x="640" y="694" text-anchor="middle" fill="#567080" font-family="Segoe UI, Arial, sans-serif" font-size="20">Cleaning</text>
+  <text x="640" y="382" text-anchor="middle" fill="#173042" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Nurse Station</text>
+  <text x="640" y="418" text-anchor="middle" fill="#567080" font-family="Segoe UI, Arial, sans-serif" font-size="20">Central desk</text>
+  <text x="640" y="300" text-anchor="middle" fill="#7B919D" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="600">Main corridor</text>
+</svg>
