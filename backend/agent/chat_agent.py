@@ -22,6 +22,7 @@ from agent.tools.supabase_tools import (
     create_alert,
 )
 from agent.tools.twilio_tools import send_sms as tool_send_sms
+from agent.tools.generate_patient_summary import generate_patient_summary
 from integrations.openai_client import get_openai_client
 
 
@@ -64,6 +65,7 @@ TOOL_EXECUTORS = {
         args["message"],
     ),
     "send_sms": lambda args: {"sid": tool_send_sms(args["to"], args["message"])},
+    "generate_patient_summary": lambda args: generate_patient_summary(args["name"]),
 }
 
 

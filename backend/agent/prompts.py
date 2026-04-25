@@ -45,7 +45,8 @@ Available tools:
 - update_nurse_status(nurse_id, status, room_id, patient_id): Update a nurse's real-time status
 - create_alert(type, room_id, priority, message): Create a priority alert
 - send_sms(to, message): Send an SMS message
-- update_shift_status(shift_id, status): Update a shift's status"""
+- update_shift_status(shift_id, status): Update a shift's status
+- generate_patient_summary(name): Generate a PDF summary for a patient by name. Use this when a nurse asks for a summary or report on a specific patient (e.g. "Give me a summary for James Nguyen" or "Summary on James Nguyen"). Returns the PDF file path."""
 
 
 OPENAI_TOOL_DEFINITIONS = [
@@ -233,6 +234,23 @@ OPENAI_TOOL_DEFINITIONS = [
                     },
                 },
                 "required": ["to", "message"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_patient_summary",
+            "description": "Generate a PDF summary report for a patient by name. Use this when a nurse asks for a patient summary or report (e.g. 'Give me a summary for James Nguyen' or 'Summary on James Nguyen'). The PDF includes patient info, room status, family contacts, rounding logs, and active alerts.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The patient's full name",
+                    }
+                },
+                "required": ["name"],
             },
         },
     },
