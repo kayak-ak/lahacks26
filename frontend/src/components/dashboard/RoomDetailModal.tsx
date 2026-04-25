@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Room } from './data';
 import {
   PulseIcon,
   SendIcon,
 } from './icons';
+
+const WS_URL = 'ws://localhost:8765';
 
 type RoomDetailModalProps = {
   room: Room;
@@ -105,6 +107,41 @@ const metricCards = [
 ] as const;
 
 export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
+  const [frameSrc, setFrameSrc] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const ws = new WebSocket(WS_URL);
+    ws.binaryType = 'arraybuffer';
+    wsRef.current = ws;
+
+    ws.onopen = () => setConnected(true);
+    ws.onclose = () => setConnected(false);
+    ws.onerror = () => setConnected(false);
+
+    ws.onmessage = (event: MessageEvent) => {
+      if (event.data instanceof ArrayBuffer) {
+        const blob = new Blob([event.data], { type: 'image/jpeg' });
+        const url = URL.createObjectURL(blob);
+        setFrameSrc((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      }
+    };
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+      setConnected(false);
+      setFrameSrc((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -157,11 +194,19 @@ export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
               LIVE
             </span>
 
-            <div className="room-modal__stream-placeholder">
-              <PulseIcon className="room-modal__stream-icon" />
-              <strong>{room.streamLabel}</strong>
-              <span>{room.cameraLabel}</span>
-            </div>
+            {frameSrc ? (
+              <img
+                className="room-modal__stream-image"
+                src={frameSrc}
+                alt="Live camera feed"
+              />
+            ) : (
+              <div className="room-modal__stream-placeholder">
+                <PulseIcon className="room-modal__stream-icon" />
+                <strong>{connected ? 'Connecting to camera...' : room.streamLabel}</strong>
+                <span>{connected ? 'Please wait' : room.cameraLabel}</span>
+              </div>
+            )}
           </section>
 
           <section className="room-modal__metrics">
