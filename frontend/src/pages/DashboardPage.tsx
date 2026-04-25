@@ -3,10 +3,10 @@ import { AssistantSidebar } from '../components/dashboard/AssistantSidebar';
 import { Sidebar } from '../components/dashboard/Sidebar';
 import { HospitalFloor } from '../components/dashboard/HospitalFloor';
 import { RoomDetailModal } from '../components/dashboard/RoomDetailModal';
-import { rooms } from '../components/dashboard/data';
+import { rooms, type Room } from '../components/dashboard/data';
 
 export function DashboardPage() {
-  const [roomsData, setRoomsData] = useState<Room[]>(initialRooms);
+  const [roomsData, setRoomsData] = useState<Room[]>(rooms);
   const [selectedRoomId, setSelectedRoomId] = useState('Room 102');
   const [openRoomId, setOpenRoomId] = useState<string | null>(null);
   const [admittingRoomId, setAdmittingRoomId] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export function DashboardPage() {
             />
           </div>
 
-          <AssistantSidebar messages={initialMessages} selectedRoom={selectedRoom} />
+          <AssistantSidebar selectedRoom={selectedRoom} />
         </main>
 
         {openRoom ? (
@@ -96,13 +96,7 @@ export function DashboardPage() {
             onSimulateVacancy={handleSimulateVacancy} 
           />
         ) : null}
-
-        <AssistantSidebar selectedRoom={selectedRoom} />
-      </main>
-
-      {openRoom ? (
-        <RoomDetailModal room={openRoom} onClose={() => setOpenRoomId(null)} />
-      ) : null}
+      </div>
     </div>
   );
 }
