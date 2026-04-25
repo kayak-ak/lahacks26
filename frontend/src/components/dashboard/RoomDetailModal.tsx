@@ -156,6 +156,17 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
   const [cvStatus, setCvStatus] = useState<'normal' | 'alert' | 'vacant' | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isProcessingRef = useRef(false);
+
+  // Auto-vacancy effect
+  useEffect(() => {
+    if (cvStatus === 'vacant' && onSimulateVacancy) {
+      const timer = setTimeout(() => {
+        onSimulateVacancy(room.id, 0);
+      }, vacancyTimer);
+      return () => clearTimeout(timer);
+    }
+  }, [cvStatus, vacancyTimer, onSimulateVacancy, room.id]);
 
   useEffect(() => {
     const ws = new WebSocket(WS_URL);
@@ -175,20 +186,28 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         return url;
       });
 
+      if (isProcessingRef.current) return;
+      isProcessingRef.current = true;
+
       // Decode the JPEG off-screen and sample pixel color to detect status
       const img = new Image();
       img.onload = () => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return;
-        ctx.drawImage(img, 0, 0);
-        setCvStatus(inferStatusFromCanvas(canvas));
-        URL.revokeObjectURL(img.src);
+        if (canvas) {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            setCvStatus(inferStatusFromCanvas(canvas));
+          }
+        }
+        isProcessingRef.current = false;
       };
-      img.src = URL.createObjectURL(blob);
+      img.onerror = () => {
+        isProcessingRef.current = false;
+      };
+      img.src = url;
     };
 
     return () => {
@@ -292,7 +311,7 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
 
             {frameSrc ? (
               <img
-                className="w-full h-auto object-contain rounded-xl"
+                className="w-full h-auto object-contain rounded-xl scale-x-[-1]"
                 src={frameSrc}
                 alt="Live camera feed"
               />
@@ -362,8 +381,8 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
           {onSimulateVacancy && (
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div className="flex flex-col">
-                <span className="font-semibold text-sm text-slate-800">Simulate CV Vacancy</span>
-                <span className="text-xs text-slate-500">Test auto-discharge</span>
+                <span className="font-semibold text-sm text-slate-800">Auto-Vacancy Delay</span>
+                <span className="text-xs text-slate-500">Wait time before marking room as vacant</span>
               </div>
               <div className="flex items-center gap-2">
                 <select 
@@ -376,9 +395,6 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
                   <option value={60000}>1 minute</option>
                   <option value={300000}>5 minutes</option>
                 </select>
-                <Button size="sm" variant="outline" onClick={() => onSimulateVacancy(room.id, vacancyTimer)}>
-                  Trigger
-                </Button>
               </div>
             </div>
           )}
