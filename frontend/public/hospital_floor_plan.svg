@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <rect width="100%" height="100%" fill="white"/>
+  <defs>
+    <style>
+      .wall{fill:none;stroke:#000;stroke-width:5;stroke-linecap:square;stroke-linejoin:miter}
+      .thin{fill:none;stroke:#000;stroke-width:2.5;stroke-linecap:square;stroke-linejoin:miter}
+      .door{fill:none;stroke:#000;stroke-width:2.5;stroke-linecap:round}
+      .label{font-family:Arial, Helvetica, sans-serif;font-weight:700;font-size:20px;text-anchor:middle;dominant-baseline:middle;fill:#000}
+      .small{font-family:Arial, Helvetica, sans-serif;font-weight:700;font-size:14px;text-anchor:middle;dominant-baseline:middle;fill:#000}
+      .title{font-family:Arial, Helvetica, sans-serif;font-weight:700;font-size:22px;text-anchor:middle;fill:#000}
+    </style>
+  </defs>
+
+  <!-- Main building outline -->
+  <path class="wall" d="M145 75 H690 V55 H715 V75 H1350 V315 H1382 V830 H945 V885 H725 V830 H110 V315 H145 Z"/>
+
+  <!-- Corridors -->
+  <path class="wall" d="M110 375 H585"/>
+  <path class="wall" d="M795 375 H1382"/>
+  <path class="wall" d="M585 305 V375"/>
+  <path class="wall" d="M915 75 V305"/>
+  <path class="wall" d="M535 375 V830"/>
+  <path class="wall" d="M945 375 V830"/>
+
+  <!-- Left top admin/service block -->
+  <path class="wall" d="M145 75 V305 H335 V195 H145"/>
+  <path class="wall" d="M395 75 V305"/>
+  <path class="wall" d="M575 75 V305"/>
+  <path class="wall" d="M335 195 H575"/>
+
+  <!-- Lobby/reception -->
+  <path class="wall" d="M575 75 V305 H915 V75"/>
+  <path class="thin" d="M665 198 Q750 260 835 198"/>
+  <path class="thin" d="M690 198 V238 H810 V198"/>
+  <path class="thin" d="M665 198 V240 Q750 295 835 240 V198"/>
+  <rect class="thin" x="886" y="140" width="18" height="24" rx="4"/>
+  <rect class="thin" x="886" y="175" width="18" height="24" rx="4"/>
+  <rect class="thin" x="886" y="210" width="18" height="24" rx="4"/>
+
+  <!-- Right top block -->
+  <path class="wall" d="M915 75 V305 H1080 V195 H915"/>
+  <path class="wall" d="M1080 75 V305"/>
+  <path class="wall" d="M1350 195 H1080"/>
+  <path class="wall" d="M1175 195 V305"/>
+
+  <!-- Left exam rooms -->
+  <path class="wall" d="M110 375 H265 V830 H110"/>
+  <path class="wall" d="M110 482 H265"/>
+  <path class="wall" d="M110 600 H265"/>
+  <path class="wall" d="M110 712 H265"/>
+
+  <!-- Left diagnostic/service block -->
+  <path class="wall" d="M320 375 H535 V830 H320"/>
+  <path class="wall" d="M320 492 H535"/>
+  <path class="wall" d="M320 603 H535"/>
+  <path class="wall" d="M320 720 H535"/>
+
+  <!-- Central nurses station -->
+  <path class="wall" d="M628 458 H788 V618 H748 V670 H680 V618 H628 Z"/>
+  <path class="thin" d="M653 482 H763 V593 H653 Z"/>
+
+  <!-- Bottom emergency block -->
+  <path class="wall" d="M535 730 H725 V885"/>
+  <path class="wall" d="M725 730 H945"/>
+  <path class="wall" d="M725 730 V885"/>
+
+  <!-- Restroom / utility block -->
+  <path class="wall" d="M795 375 H945 V730 H795"/>
+  <path class="wall" d="M795 580 H945"/>
+
+  <!-- Patient rooms right side -->
+  <path class="wall" d="M945 375 H1130 V830 H945"/>
+  <path class="wall" d="M945 482 H1130"/>
+  <path class="wall" d="M945 600 H1130"/>
+  <path class="wall" d="M945 715 H1130"/>
+  <path class="wall" d="M1185 375 H1382 V830 H1185"/>
+  <path class="wall" d="M1185 482 H1382"/>
+  <path class="wall" d="M1185 600 H1382"/>
+  <path class="wall" d="M1185 715 H1382"/>
+
+  <!-- Entrances/exits labels and door swings -->
+  <text class="title" x="750" y="45">MAIN ENTRANCE</text>
+  <text class="title" x="765" y="935">EMERGENCY</text>
+  <text class="title" x="765" y="960">ENTRANCE</text>
+  <text class="title" x="175" y="910">EXIT</text>
+  <text class="title" x="1430" y="335">EXIT</text>
+
+  <path class="door" d="M715 55 V95"/><path class="door" d="M690 55 Q715 55 715 95"/>
+  <path class="door" d="M715 55 Q740 55 740 95"/>
+  <path class="door" d="M725 885 V925"/><path class="door" d="M725 885 Q750 885 750 925"/>
+  <path class="door" d="M785 885 V925"/><path class="door" d="M785 885 Q760 885 760 925"/>
+  <path class="door" d="M145 830 V870"/><path class="door" d="M145 870 Q180 870 180 830"/>
+  <path class="door" d="M1382 315 H1420"/><path class="door" d="M1382 315 Q1382 350 1420 350"/>
+
+  <!-- Room labels -->
+  <text class="label" x="270" y="135"><tspan x="270" dy="0">INVENTORY /</tspan><tspan x="270" dy="24">STORAGE</tspan></text>
+  <text class="label" x="485" y="140">PHARMACY</text>
+  <text class="label" x="245" y="250"><tspan x="245" dy="0">STAFF</tspan><tspan x="245" dy="24">LOUNGE</tspan></text>
+  <text class="label" x="460" y="250"><tspan x="460" dy="0">STAFF</tspan><tspan x="460" dy="24">RESTROOM</tspan></text>
+  <text class="label" x="745" y="155">LOBBY</text>
+  <text class="small" x="750" y="257">RECEPTION</text>
+  <text class="label" x="1000" y="130"><tspan x="1000" dy="0">ADMIN</tspan><tspan x="1000" dy="24">OFFICE</tspan></text>
+  <text class="label" x="1000" y="250"><tspan x="1000" dy="0">BILLING</tspan><tspan x="1000" dy="24">OFFICE</tspan></text>
+  <text class="label" x="1215" y="130"><tspan x="1215" dy="0">CONFERENCE</tspan><tspan x="1215" dy="24">ROOM</tspan></text>
+  <text class="label" x="1265" y="250"><tspan x="1265" dy="0">STAFF</tspan><tspan x="1265" dy="24">RESTROOM</tspan></text>
+
+  <text class="label" x="187" y="428"><tspan x="187" dy="0">EXAM</tspan><tspan x="187" dy="24">ROOM 1</tspan></text>
+  <text class="label" x="187" y="545"><tspan x="187" dy="0">EXAM</tspan><tspan x="187" dy="24">ROOM 2</tspan></text>
+  <text class="label" x="187" y="655"><tspan x="187" dy="0">EXAM</tspan><tspan x="187" dy="24">ROOM 3</tspan></text>
+  <text class="label" x="187" y="765"><tspan x="187" dy="0">EXAM</tspan><tspan x="187" dy="24">ROOM 4</tspan></text>
+  <text class="label" x="430" y="432">LABORATORY</text>
+  <text class="label" x="430" y="548">RADIOLOGY</text>
+  <text class="label" x="430" y="650"><tspan x="430" dy="0">PHYSICAL</tspan><tspan x="430" dy="24">THERAPY</tspan></text>
+  <text class="label" x="430" y="765"><tspan x="430" dy="0">SUPPLY</tspan><tspan x="430" dy="24">CLOSET</tspan></text>
+  <text class="label" x="708" y="530"><tspan x="708" dy="0">NURSES’</tspan><tspan x="708" dy="24">STATION</tspan></text>
+  <text class="label" x="630" y="800"><tspan x="630" dy="0">TRIAGE</tspan><tspan x="630" dy="24">ROOM</tspan></text>
+  <text class="label" x="835" y="805"><tspan x="835" dy="0">EMERGENCY</tspan><tspan x="835" dy="24">ROOM</tspan></text>
+  <text class="label" x="870" y="495">🚻</text>
+  <text class="label" x="870" y="525">RESTROOM</text>
+  <text class="label" x="870" y="640"><tspan x="870" dy="0">UTILITY</tspan><tspan x="870" dy="24">ROOM</tspan></text>
+
+  <text class="label" x="1038" y="430"><tspan x="1038" dy="0">PATIENT</tspan><tspan x="1038" dy="24">ROOM 101</tspan></text>
+  <text class="label" x="1038" y="545"><tspan x="1038" dy="0">PATIENT</tspan><tspan x="1038" dy="24">ROOM 102</tspan></text>
+  <text class="label" x="1038" y="655"><tspan x="1038" dy="0">PATIENT</tspan><tspan x="1038" dy="24">ROOM 103</tspan></text>
+  <text class="label" x="1038" y="765"><tspan x="1038" dy="0">PATIENT</tspan><tspan x="1038" dy="24">ROOM 104</tspan></text>
+  <text class="label" x="1284" y="430"><tspan x="1284" dy="0">PATIENT</tspan><tspan x="1284" dy="24">ROOM 105</tspan></text>
+  <text class="label" x="1284" y="545"><tspan x="1284" dy="0">PATIENT</tspan><tspan x="1284" dy="24">ROOM 106</tspan></text>
+  <text class="label" x="1284" y="655"><tspan x="1284" dy="0">PATIENT</tspan><tspan x="1284" dy="24">ROOM 107</tspan></text>
+  <text class="label" x="1284" y="765"><tspan x="1284" dy="0">PATIENT</tspan><tspan x="1284" dy="24">ROOM 108</tspan></text>
+
+  <!-- Door hints throughout plan -->
+  <path class="door" d="M395 135 Q360 135 365 165"/><path class="door" d="M395 165 V198"/>
+  <path class="door" d="M335 250 Q370 250 365 280"/>
+  <path class="door" d="M575 275 Q540 275 540 305"/>
+  <path class="door" d="M1040 195 Q1040 160 1080 165"/>
+  <path class="door" d="M1040 305 Q1040 270 1080 275"/>
+  <path class="door" d="M1080 165 Q1120 165 1120 195"/>
+  <path class="door" d="M1175 250 Q1210 250 1205 280"/>
+  <path class="door" d="M265 415 Q235 415 235 450"/>
+  <path class="door" d="M265 530 Q235 530 235 565"/>
+  <path class="door" d="M265 645 Q235 645 235 680"/>
+  <path class="door" d="M265 755 Q235 755 235 790"/>
+  <path class="door" d="M320 415 Q350 415 350 450"/>
+  <path class="door" d="M320 530 Q350 530 350 565"/>
+  <path class="door" d="M320 645 Q350 645 350 680"/>
+  <path class="door" d="M320 755 Q350 755 350 790"/>
+  <path class="door" d="M680 730 Q680 760 650 760"/>
+  <path class="door" d="M725 730 Q725 760 755 760"/>
+  <path class="door" d="M795 550 Q825 550 825 580"/>
+  <path class="door" d="M795 670 Q825 670 825 700"/>
+  <path class="door" d="M1130 420 Q1100 420 1100 455"/>
+  <path class="door" d="M1130 535 Q1100 535 1100 570"/>
+  <path class="door" d="M1130 650 Q1100 650 1100 685"/>
+  <path class="door" d="M1130 765 Q1100 765 1100 800"/>
+  <path class="door" d="M1185 420 Q1215 420 1215 455"/>
+  <path class="door" d="M1185 535 Q1215 535 1215 570"/>
+  <path class="door" d="M1185 650 Q1215 650 1215 685"/>
+  <path class="door" d="M1185 765 Q1215 765 1215 800"/>
+</svg>
