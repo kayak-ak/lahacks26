@@ -118,36 +118,6 @@ const metricCards = [
   },
 ] as const;
 
-// Pixel-sample region in the original 640×480 frame where the backend renders ALERT/NORMAL
-const SAMPLE_X = 10;
-const SAMPLE_Y = 20;
-const SAMPLE_W = 120;
-const SAMPLE_H = 32;
-
-function inferStatusFromCanvas(canvas: HTMLCanvasElement): 'normal' | 'alert' | 'vacant' {
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) return 'vacant';
-
-  const scaleX = canvas.width / 640;
-  const scaleY = canvas.height / 480;
-  const sx = Math.round(SAMPLE_X * scaleX);
-  const sy = Math.round(SAMPLE_Y * scaleY);
-  const sw = Math.round(SAMPLE_W * scaleX);
-  const sh = Math.round(SAMPLE_H * scaleY);
-
-  const { data } = ctx.getImageData(sx, sy, sw, sh);
-  let totalR = 0, totalG = 0, bright = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    if (r > 140 || g > 140) {
-      totalR += r;
-      totalG += g;
-      bright++;
-    }
-  }
-  if (bright < 20) return 'vacant';
-  return totalR > totalG * 1.4 ? 'alert' : totalG > totalR * 1.4 ? 'normal' : 'vacant';
-}
 
 
 export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetailModalProps) {
@@ -156,8 +126,6 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
   const [vacancyTimer, setVacancyTimer] = useState(5000);
   const [cvStatus, setCvStatus] = useState<'normal' | 'alert' | 'vacant' | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const isProcessingRef = useRef(false);
 
   // Auto-vacancy effect
   useEffect(() => {
@@ -179,6 +147,16 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
     ws.onerror = () => setConnected(false);
 
     ws.onmessage = (event: MessageEvent) => {
+      if (typeof event.data === 'string') {
+        try {
+          const parsed = JSON.parse(event.data);
+          if (parsed.status) {
+            const s = parsed.status.toLowerCase() as 'normal' | 'alert' | 'vacant';
+            setCvStatus(s);
+          }
+        } catch { /* ignore malformed JSON */ }
+        return;
+      }
       if (!(event.data instanceof ArrayBuffer)) return;
       const blob = new Blob([event.data], { type: 'image/jpeg' });
       const url = URL.createObjectURL(blob);
@@ -186,29 +164,6 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         if (prev) URL.revokeObjectURL(prev);
         return url;
       });
-
-      if (isProcessingRef.current) return;
-      isProcessingRef.current = true;
-
-      // Decode the JPEG off-screen and sample pixel color to detect status
-      const img = new Image();
-      img.onload = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext('2d', { willReadFrequently: true });
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            setCvStatus(inferStatusFromCanvas(canvas));
-          }
-        }
-        isProcessingRef.current = false;
-      };
-      img.onerror = () => {
-        isProcessingRef.current = false;
-      };
-      img.src = url;
     };
 
     return () => {
@@ -266,9 +221,6 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
             </svg>
           </Button>
         </DialogHeader>
-
-        {/* Hidden canvas for per-frame pixel sampling */}
-        <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
 
         {/* Content */}
         <div className="flex flex-col flex-1 gap-6 p-6 overflow-y-auto bg-white min-h-0">

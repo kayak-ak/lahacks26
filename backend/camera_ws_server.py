@@ -45,6 +45,7 @@ def is_curled_up(landmarks_list):
 
 
 latest_frame_bytes: bytes | None = None
+latest_status: str = "VACANT"
 cap: cv2.VideoCapture | None = None
 
 
@@ -56,7 +57,7 @@ def _generate_placeholder_frame(text: str) -> bytes:
 
 
 async def capture_loop():
-    global latest_frame_bytes, cap
+    global latest_frame_bytes, latest_status, cap
 
     while True:
         for idx in (1, 0):
@@ -117,6 +118,7 @@ async def capture_loop():
 
             _, buffer = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 80])
             latest_frame_bytes = buffer.tobytes()
+            latest_status = label
 
             await asyncio.sleep(0.01)
 
@@ -129,6 +131,7 @@ async def stream_handler(websocket):
         while True:
             if latest_frame_bytes is not None:
                 try:
+                    await websocket.send('{"status":"' + latest_status + '"}')
                     await websocket.send(latest_frame_bytes)
                 except websockets.exceptions.ConnectionClosed:
                     break
