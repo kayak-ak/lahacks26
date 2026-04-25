@@ -3,6 +3,7 @@ import { AssistantSidebar } from '../components/dashboard/AssistantSidebar';
 import { Sidebar } from '../components/dashboard/Sidebar';
 import { HospitalFloor } from '../components/dashboard/HospitalFloor';
 import { RoomDetailModal } from '../components/dashboard/RoomDetailModal';
+import { AdmitPatientModal } from '../components/dashboard/AdmitPatientModal';
 import { rooms, type Room } from '../components/dashboard/data';
 
 export function DashboardPage() {
@@ -94,6 +95,14 @@ export function DashboardPage() {
             room={openRoom} 
             onClose={() => setOpenRoomId(null)} 
             onSimulateVacancy={handleSimulateVacancy} 
+          />
+        ) : null}
+
+        {admittingRoom ? (
+          <AdmitPatientModal 
+            room={admittingRoom} 
+            onClose={() => setAdmittingRoomId(null)} 
+            onAdmit={handleAdmitPatient} 
           />
         ) : null}
       </div>
