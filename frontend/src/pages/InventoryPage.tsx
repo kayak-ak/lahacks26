@@ -13,7 +13,7 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import { DashboardHeader } from '../components/dashboard/DashboardHeader';
+import { Sidebar } from '../components/dashboard/Sidebar';
 import { CubeIcon } from '../components/dashboard/icons';
 
 type InventoryStatus = 'adequate' | 'low' | 'critical';
@@ -215,10 +215,10 @@ export function InventoryPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900">
-      <DashboardHeader activeItem="inventory" />
-
-      <main className="flex flex-col gap-7 p-8">
+    <div className="flex h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 gap-3 overflow-hidden">
+      <Sidebar activeItem="inventory" />
+      <div className="flex-1 rounded-2xl overflow-hidden border border-border/30 shadow-lg bg-white/80 backdrop-blur-sm h-full flex flex-col min-w-0">
+        <main className="flex flex-col gap-7 p-8 flex-1 overflow-auto min-h-0">
         {/* Intro */}
         <section>
           <h1 className="m-0 text-[clamp(2rem,2.4vw,2.875rem)] leading-[1.15] tracking-[-0.03em] text-slate-900">
@@ -340,7 +340,8 @@ export function InventoryPage() {
             </TableBody>
           </Table>
         </Card>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,16 +1,16 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DashboardHeader } from '../components/dashboard/DashboardHeader';
+import { Sidebar } from '../components/dashboard/Sidebar';
 import { MicrophoneIcon } from '../components/dashboard/icons';
 
 const visualizerDots = Array.from({ length: 41 }, (_, index) => index);
 
 export function VoicePage() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900">
-      <DashboardHeader activeItem="voice" />
-
-      <main className="flex flex-col gap-8 p-8">
+    <div className="flex h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 gap-3 overflow-hidden">
+      <Sidebar activeItem="voice" />
+      <div className="flex-1 rounded-2xl overflow-hidden border border-border/30 shadow-lg bg-white/80 backdrop-blur-sm h-full flex flex-col min-w-0">
+        <main className="flex flex-col gap-8 p-8 flex-1 overflow-auto min-h-0">
         {/* Intro */}
         <section className="flex items-center justify-between gap-6">
           <div>
@@ -69,7 +69,8 @@ export function VoicePage() {
             Click to start recording
           </p>
         </Card>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
