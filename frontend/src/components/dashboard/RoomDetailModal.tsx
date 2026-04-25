@@ -153,20 +153,33 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
   const [frameSrc, setFrameSrc] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [vacancyTimer, setVacancyTimer] = useState(5000);
-  const [cvStatus, setCvStatus] = useState<'normal' | 'alert' | 'vacant' | null>(null);
+  const [cvFrameStatus, setCvFrameStatus] = useState<'normal' | 'alert' | 'vacant' | null>(null);
+  const [roomOccupancy, setRoomOccupancy] = useState<'filled' | 'vacant'>(room.status === 'vacant' ? 'vacant' : 'filled');
+  const [patientStatus, setPatientStatus] = useState<'normal' | 'alert' | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isProcessingRef = useRef(false);
 
+  useEffect(() => {
+    if (cvFrameStatus === 'normal' || cvFrameStatus === 'alert') {
+      setPatientStatus(cvFrameStatus);
+      setRoomOccupancy('filled');
+    }
+  }, [cvFrameStatus]);
+
   // Auto-vacancy effect
   useEffect(() => {
-    if (cvStatus === 'vacant' && onSimulateVacancy) {
+    if (cvFrameStatus === 'vacant') {
       const timer = setTimeout(() => {
-        onSimulateVacancy(room.id, 0);
+        setRoomOccupancy('vacant');
+        setPatientStatus(null);
+        if (onSimulateVacancy) {
+          onSimulateVacancy(room.id, 0);
+        }
       }, vacancyTimer);
       return () => clearTimeout(timer);
     }
-  }, [cvStatus, vacancyTimer, onSimulateVacancy, room.id]);
+  }, [cvFrameStatus, vacancyTimer, onSimulateVacancy, room.id]);
 
   useEffect(() => {
     const ws = new WebSocket(WS_URL);
@@ -199,7 +212,7 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
           const ctx = canvas.getContext('2d', { willReadFrequently: true });
           if (ctx) {
             ctx.drawImage(img, 0, 0);
-            setCvStatus(inferStatusFromCanvas(canvas));
+            setCvFrameStatus(inferStatusFromCanvas(canvas));
           }
         }
         isProcessingRef.current = false;
@@ -272,35 +285,49 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         {/* Content */}
         <div className="flex flex-col flex-1 gap-6 p-6 overflow-y-auto bg-white min-h-0">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-700">CV Status:</span>
-              {cvStatus === null ? (
-                <span className="text-sm text-slate-400 italic">Connecting...</span>
-              ) : (
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-slate-700">Room Status:</span>
                 <span className={cn(
                   "text-sm font-semibold capitalize px-2.5 py-0.5 rounded-full border transition-all duration-300",
-                  cvStatus === 'alert' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
-                  cvStatus === 'normal' ? 'bg-green-50 text-green-700 border-green-200' :
-                  'bg-slate-50 text-slate-500 border-slate-200'
+                  roomOccupancy === 'vacant' ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-blue-50 text-blue-700 border-blue-200'
                 )}>
-                  {cvStatus}
+                  {roomOccupancy}
                 </span>
+              </div>
+              
+              {roomOccupancy === 'filled' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-700">Patient Status:</span>
+                  {patientStatus === null ? (
+                    <span className="text-sm text-slate-400 italic">Scanning...</span>
+                  ) : (
+                    <span className={cn(
+                      "text-sm font-semibold capitalize px-2.5 py-0.5 rounded-full border transition-all duration-300",
+                      patientStatus === 'alert' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
+                      'bg-green-50 text-green-700 border-green-200'
+                    )}>
+                      {patientStatus}
+                    </span>
+                  )}
+                </div>
               )}
-              {cvStatus === 'alert' && (
-                <span className="text-xs text-red-600 font-medium">
-                  ⚠ Abnormal body position detected
-                </span>
-              )}
-              {cvStatus === 'vacant' && (
-                <span className="text-xs text-slate-400">
-                  No patient detected in frame
-                </span>
-              )}
-              {cvStatus === 'normal' && (
-                <span className="text-xs text-green-600">
-                  Patient resting normally
-                </span>
-              )}
+
+              <div className="ml-auto flex items-center">
+                {roomOccupancy === 'vacant' ? (
+                  <span className="text-xs text-slate-400">
+                    No patient detected in room
+                  </span>
+                ) : patientStatus === 'alert' ? (
+                  <span className="text-xs text-red-600 font-medium">
+                    ⚠ Abnormal body position detected
+                  </span>
+                ) : patientStatus === 'normal' ? (
+                  <span className="text-xs text-green-600">
+                    Patient resting normally
+                  </span>
+                ) : null}
+              </div>
             </div>
             {/* Live Stream Placeholder */}
             <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[260px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
