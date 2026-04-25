@@ -13,4 +13,6 @@ dependencies = [
     "twilio>=9.0",
     "python-dotenv>=1.0",
     "psycopg2-binary>=2.9.12",
+    "opencv-python>=4.13.0.92",
+    "mediapipe==0.10.14",
 ]
