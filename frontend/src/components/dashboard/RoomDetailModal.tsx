@@ -174,11 +174,11 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
-        className="max-w-[872px] max-h-[calc(100vh-48px)] p-0 gap-0 rounded-2xl border-border shadow-2xl overflow-hidden"
+        className="max-w-[872px] max-h-[calc(100vh-48px)] flex flex-col p-0 gap-0 rounded-2xl border-border shadow-2xl overflow-hidden"
         showCloseButton={false}
       >
         {/* Header */}
-        <DialogHeader className="flex-row items-center justify-between gap-4 p-6 border-b border-border bg-gradient-to-b from-blue-50/50 to-transparent space-y-0">
+        <DialogHeader className="flex-row shrink-0 items-center justify-between gap-4 p-6 border-b border-border bg-gradient-to-b from-blue-50/50 to-transparent space-y-0">
           <div>
             <DialogTitle className="text-2xl text-slate-900">{room.id}</DialogTitle>
             <DialogDescription className="mt-1.5 text-[1.08rem] text-slate-500 flex flex-col gap-0.5">
@@ -201,9 +201,22 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         </DialogHeader>
 
         {/* Content */}
-        <div className="flex flex-col gap-6 p-6 overflow-auto bg-white">
-          {/* Live Stream Placeholder */}
-          <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[260px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="flex flex-col flex-1 gap-6 p-6 overflow-y-auto bg-white min-h-0">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-slate-700">CV Status:</span>
+              <span className={cn(
+                "text-sm font-medium capitalize px-2.5 py-0.5 rounded-full border",
+                room.status === 'critical' ? 'bg-red-50 text-red-700 border-red-200' :
+                room.status === 'stable' ? 'bg-green-50 text-green-700 border-green-200' :
+                room.status === 'observation' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                'bg-slate-50 text-slate-700 border-slate-200'
+              )}>
+                {room.status}
+              </span>
+            </div>
+            {/* Live Stream Placeholder */}
+            <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[260px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
             <Badge className="absolute top-4 left-4 z-10 bg-blue-600 text-white border-0 rounded-full px-3 py-1 text-[0.78rem] font-semibold gap-2 shadow-sm">
               <span className="w-2 h-2 bg-white rounded-full animate-pulse" aria-hidden="true" />
               LIVE
@@ -226,7 +239,8 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
                 </span>
               </div>
             )}
-          </section>
+            </section>
+          </div>
 
           {/* Vital Signs */}
           <section className="flex flex-col gap-4">
@@ -259,7 +273,7 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-col gap-4 p-4 px-6 pb-6 border-t border-[rgba(44,62,80,0.06)]">
+        <div className="flex flex-col shrink-0 gap-4 p-4 px-6 pb-6 border-t border-[rgba(44,62,80,0.06)]">
           <div className="grid grid-cols-2 gap-3 sm:justify-stretch">
             <Button
               type="button"
