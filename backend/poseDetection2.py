@@ -44,7 +44,7 @@ def is_curled_up(landmarks):
     return normalized_spread < CURL_THRESHOLD
 
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 while cap.isOpened():
     success, img = cap.read()
