@@ -16,6 +16,7 @@ export type Room = {
 
 export type AssistantMessage = {
   id: string;
+  role: 'user' | 'assistant';
   text: string;
   time: string;
 };
@@ -128,6 +129,7 @@ export const rooms: Room[] = [
 export const initialMessages: AssistantMessage[] = [
   {
     id: 'welcome',
+    role: 'assistant',
     text: "Hello! I'm your AI clinical assistant. I can help you coordinate patient care, access medical records, and provide clinical insights. How can I assist you today?",
     time: '05:03 AM',
   },

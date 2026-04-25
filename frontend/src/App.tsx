@@ -1,4 +1,3 @@
-import './App.css';
 import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { VoicePage } from './pages/VoicePage';
