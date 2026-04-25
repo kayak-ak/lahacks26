@@ -4,11 +4,10 @@ import { Sidebar } from '../components/dashboard/Sidebar';
 import { HospitalFloor } from '../components/dashboard/HospitalFloor';
 import { RoomDetailModal } from '../components/dashboard/RoomDetailModal';
 import { AdmitPatientModal } from '../components/dashboard/AdmitPatientModal';
-import { initialMessages, rooms as initialRooms } from '../components/dashboard/data';
-import type { Room } from '../components/dashboard/data';
+import { rooms, type Room } from '../components/dashboard/data';
 
 export function DashboardPage() {
-  const [roomsData, setRoomsData] = useState<Room[]>(initialRooms);
+  const [roomsData, setRoomsData] = useState<Room[]>(rooms);
   const [selectedRoomId, setSelectedRoomId] = useState('Room 102');
   const [openRoomId, setOpenRoomId] = useState<string | null>(null);
   const [admittingRoomId, setAdmittingRoomId] = useState<string | null>(null);
@@ -88,7 +87,7 @@ export function DashboardPage() {
             />
           </div>
 
-          <AssistantSidebar messages={initialMessages} selectedRoom={selectedRoom} />
+          <AssistantSidebar selectedRoom={selectedRoom} />
         </main>
 
         {openRoom ? (

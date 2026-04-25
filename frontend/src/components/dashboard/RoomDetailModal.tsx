@@ -149,6 +149,7 @@ function inferStatusFromCanvas(canvas: HTMLCanvasElement): 'normal' | 'alert' | 
   return totalR > totalG * 1.4 ? 'alert' : totalG > totalR * 1.4 ? 'normal' : 'vacant';
 }
 
+
 export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetailModalProps) {
   const [frameSrc, setFrameSrc] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
