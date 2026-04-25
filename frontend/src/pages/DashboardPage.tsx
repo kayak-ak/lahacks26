@@ -3,7 +3,7 @@ import { AssistantSidebar } from '../components/dashboard/AssistantSidebar';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { HospitalFloor } from '../components/dashboard/HospitalFloor';
 import { RoomDetailModal } from '../components/dashboard/RoomDetailModal';
-import { initialMessages, rooms } from '../components/dashboard/data';
+import { rooms } from '../components/dashboard/data';
 
 export function DashboardPage() {
   const [selectedRoomId, setSelectedRoomId] = useState('Room 102');
@@ -28,7 +28,7 @@ export function DashboardPage() {
           />
         </div>
 
-        <AssistantSidebar messages={initialMessages} selectedRoom={selectedRoom} />
+        <AssistantSidebar selectedRoom={selectedRoom} />
       </main>
 
       {openRoom ? (

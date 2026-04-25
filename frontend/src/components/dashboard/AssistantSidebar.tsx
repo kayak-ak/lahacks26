@@ -3,11 +3,11 @@ import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { AssistantMessage, Room } from './data';
+import { useChatStore } from '@/store/chatStore';
+import type { Room } from './data';
 import { PaperclipIcon, SendIcon, SparkleIcon } from './icons';
 
 type AssistantSidebarProps = {
-  messages: AssistantMessage[];
   selectedRoom: Room;
 };
 
@@ -20,13 +20,23 @@ function formatRoomPrompt(room: Room) {
 }
 
 export function AssistantSidebar({
-  messages,
   selectedRoom,
 }: AssistantSidebarProps) {
+  const messages = useChatStore((s) => s.messages);
+  const isLoading = useChatStore((s) => s.isLoading);
+  const sendMessage = useChatStore((s) => s.sendMessage);
   const [draft, setDraft] = useState('');
 
   const placeholder = useMemo(() => formatRoomPrompt(selectedRoom), [selectedRoom]);
-  const sendDisabled = draft.trim().length === 0;
+  const sendDisabled = draft.trim().length === 0 || isLoading;
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (sendDisabled) return;
+    const text = draft.trim();
+    setDraft('');
+    sendMessage(text, formatRoomPrompt(selectedRoom));
+  };
 
   return (
     <aside className="grid grid-rows-[auto_1fr_auto] min-h-full bg-white/80 border-l border-border/40 backdrop-blur-md">
@@ -60,6 +70,14 @@ export function AssistantSidebar({
           );
         })}
 
+        {isLoading && (
+          <div className="flex w-full justify-start">
+            <Card className="max-w-[85%] p-3.5 px-4 pb-3 bg-slate-100 text-slate-800 rounded-2xl rounded-tl-sm border-slate-200/50 shadow-sm border-transparent">
+              <p className="m-0 text-[1.02rem] leading-[1.62] animate-pulse">Thinking...</p>
+            </Card>
+          </div>
+        )}
+
         <div className="flex w-full justify-end">
           <Card className="max-w-[85%] p-3.5 px-4 pb-3 bg-blue-50 text-blue-800 border-blue-200/60 border border-dashed rounded-2xl rounded-tr-sm shadow-none">
             <p className="m-0 text-[1.02rem] leading-[1.62]">{placeholder}</p>
@@ -71,7 +89,7 @@ export function AssistantSidebar({
       {/* Composer */}
       <form
         className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-4 border-t bg-background"
-        onSubmit={(event) => event.preventDefault()}
+        onSubmit={handleSubmit}
       >
         <Button
           type="button"
