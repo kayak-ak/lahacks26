@@ -7,7 +7,7 @@ type ChatState = {
   sendMessage: (text: string, context?: string) => Promise<void>;
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:5000';
 
 function formatConversationHistory(messages: AssistantMessage[]): string {
   if (messages.length === 0) return '';
