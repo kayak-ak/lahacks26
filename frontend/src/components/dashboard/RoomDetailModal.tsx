@@ -203,20 +203,20 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         {/* Content */}
         <div className="flex flex-col gap-6 p-6 overflow-auto bg-white">
           {/* Live Stream Placeholder */}
-          <section className="relative h-[200px] sm:h-[260px] shrink-0 p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
-            <Badge className="bg-blue-600 text-white border-0 rounded-full px-3 py-1 text-[0.78rem] font-semibold gap-2">
+          <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[260px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+            <Badge className="absolute top-4 left-4 z-10 bg-blue-600 text-white border-0 rounded-full px-3 py-1 text-[0.78rem] font-semibold gap-2 shadow-sm">
               <span className="w-2 h-2 bg-white rounded-full animate-pulse" aria-hidden="true" />
               LIVE
             </Badge>
 
             {frameSrc ? (
               <img
-                className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+                className="w-full h-auto object-contain rounded-xl"
                 src={frameSrc}
                 alt="Live camera feed"
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400 text-center">
+              <div className="flex flex-col items-center justify-center gap-2 text-slate-400 text-center w-full py-10">
                 <PulseIcon className="w-12 h-12 text-slate-300" />
                 <strong className="text-[1.15rem] font-medium text-slate-600">
                   {connected ? 'Connecting to camera...' : room.streamLabel}
