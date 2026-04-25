@@ -22,6 +22,7 @@ const WS_URL = 'ws://localhost:8765';
 type RoomDetailModalProps = {
   room: Room;
   onClose: () => void;
+  onSimulateVacancy?: (roomId: string, delayMs: number) => void;
 };
 
 function HeartIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -117,9 +118,10 @@ const metricCards = [
   },
 ] as const;
 
-export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
+export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetailModalProps) {
   const [frameSrc, setFrameSrc] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [vacancyTimer, setVacancyTimer] = useState(5000);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -179,8 +181,9 @@ export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
         <DialogHeader className="flex-row items-center justify-between gap-4 p-6 border-b border-border bg-gradient-to-b from-blue-50/50 to-transparent space-y-0">
           <div>
             <DialogTitle className="text-2xl text-slate-900">{room.id}</DialogTitle>
-            <DialogDescription className="mt-1.5 text-[1.08rem] text-slate-500">
-              Patient: {room.patient ?? 'Unassigned'}
+            <DialogDescription className="mt-1.5 text-[1.08rem] text-slate-500 flex flex-col gap-0.5">
+              <span>Patient: {room.patient ?? 'Unassigned'} {room.age ? `(${room.age} yrs)` : ''}</span>
+              {room.reason && <span className="text-[0.95rem] text-slate-400">Reason: {room.reason}</span>}
             </DialogDescription>
           </div>
           <Button
@@ -200,7 +203,7 @@ export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
         {/* Content */}
         <div className="flex flex-col gap-6 p-6 overflow-auto bg-white">
           {/* Live Stream Placeholder */}
-          <section className="relative min-h-[460px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+          <section className="relative h-[200px] sm:h-[260px] shrink-0 p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
             <Badge className="bg-blue-600 text-white border-0 rounded-full px-3 py-1 text-[0.78rem] font-semibold gap-2">
               <span className="w-2 h-2 bg-white rounded-full animate-pulse" aria-hidden="true" />
               LIVE
@@ -228,7 +231,7 @@ export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
           {/* Vital Signs */}
           <section className="flex flex-col gap-4">
             <h3 className="m-0 text-[1.75rem]">Vital Signs</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {metricCards.map((metric) => {
                 const Icon = metric.icon;
                 const value = room.vitals[metric.key];
@@ -256,22 +259,48 @@ export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
         </div>
 
         {/* Footer Actions */}
-        <DialogFooter className="grid grid-cols-2 gap-3 p-4 px-6 pb-6 border-t border-[rgba(44,62,80,0.06)] sm:justify-stretch">
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-[48px] rounded-full font-medium"
-          >
-            View Full Records
-          </Button>
-          <Button
-            type="button"
-            className="min-h-[48px] gap-2.5 rounded-full font-medium"
-          >
-            <SendIcon className="w-5 h-5" />
-            Request AI Analysis
-          </Button>
-        </DialogFooter>
+        <div className="flex flex-col gap-4 p-4 px-6 pb-6 border-t border-[rgba(44,62,80,0.06)]">
+          <div className="grid grid-cols-2 gap-3 sm:justify-stretch">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[48px] rounded-full font-medium"
+            >
+              View Full Records
+            </Button>
+            <Button
+              type="button"
+              className="min-h-[48px] gap-2.5 rounded-full font-medium"
+            >
+              <SendIcon className="w-5 h-5" />
+              Request AI Analysis
+            </Button>
+          </div>
+
+          {onSimulateVacancy && (
+            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex flex-col">
+                <span className="font-semibold text-sm text-slate-800">Simulate CV Vacancy</span>
+                <span className="text-xs text-slate-500">Test auto-discharge</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <select 
+                  className="text-sm border border-slate-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={vacancyTimer}
+                  onChange={(e) => setVacancyTimer(Number(e.target.value))}
+                >
+                  <option value={5000}>5 seconds</option>
+                  <option value={10000}>10 seconds</option>
+                  <option value={60000}>1 minute</option>
+                  <option value={300000}>5 minutes</option>
+                </select>
+                <Button size="sm" variant="outline" onClick={() => onSimulateVacancy(room.id, vacancyTimer)}>
+                  Trigger
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
