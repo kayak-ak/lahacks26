@@ -1,5 +1,18 @@
 import type { ReactNode, SVGProps } from 'react';
 import { useMemo, useState } from 'react';
+import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { CubeIcon } from '../components/dashboard/icons';
 
@@ -154,6 +167,24 @@ const statusIconMap = {
   critical: AlertIcon,
 } satisfies Record<InventoryStatus, (props: SVGProps<SVGSVGElement>) => ReactNode>;
 
+const toneStyles = {
+  critical: {
+    value: 'text-red-600',
+    iconBg: 'bg-red-500',
+    badge: 'bg-red-50 text-red-600',
+  },
+  low: {
+    value: 'text-amber-600',
+    iconBg: 'bg-amber-500',
+    badge: 'bg-amber-50 text-amber-600',
+  },
+  adequate: {
+    value: 'text-blue-600',
+    iconBg: 'bg-blue-500',
+    badge: 'bg-blue-50 text-blue-600',
+  },
+};
+
 export function InventoryPage() {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | InventoryStatus>('all');
@@ -184,115 +215,131 @@ export function InventoryPage() {
   );
 
   return (
-    <div className="dashboard-shell">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900">
       <DashboardHeader activeItem="inventory" />
 
-      <main className="inventory-page">
-        <section className="inventory-page__intro">
-          <h1>Medical Inventory</h1>
-          <p>Monitor and manage medical supplies and equipment</p>
+      <main className="flex flex-col gap-7 p-8">
+        {/* Intro */}
+        <section>
+          <h1 className="m-0 text-[clamp(2rem,2.4vw,2.875rem)] leading-[1.15] tracking-[-0.03em] text-slate-900">
+            Medical Inventory
+          </h1>
+          <p className="mt-2.5 mb-0 text-slate-500 text-[1.15rem]">
+            Monitor and manage medical supplies and equipment
+          </p>
         </section>
 
-        <section className="inventory-stats" aria-label="Inventory summary">
+        {/* Stat Cards */}
+        <section className="grid grid-cols-3 gap-6" aria-label="Inventory summary">
           {statCards.map((card) => {
             const Icon = statusIconMap[card.key];
+            const styles = toneStyles[card.tone];
 
             return (
-              <article key={card.key} className="inventory-stat-card">
+              <Card key={card.key} className="flex items-center justify-between gap-4 min-h-[118px] p-6 rounded-2xl border-border/50 shadow-lg bg-white/50 backdrop-blur-sm">
                 <div>
-                  <span className="inventory-stat-card__label">{card.label}</span>
-                  <strong className={`inventory-stat-card__value inventory-stat-card__value--${card.tone}`}>
+                  <span className="block text-slate-500 text-[0.95rem] font-medium">{card.label}</span>
+                  <strong className={cn('block mt-2 text-[3rem] leading-none tracking-tight', styles.value)}>
                     {stats[card.key]}
                   </strong>
                 </div>
-                <div className={`inventory-stat-card__icon inventory-stat-card__icon--${card.tone}`}>
-                  <Icon className="inventory-stat-card__icon-svg" />
+                <div className={cn('grid place-items-center w-14 h-14 rounded-2xl text-white shadow-md', styles.iconBg)}>
+                  <Icon className="w-5 h-5" />
                 </div>
-              </article>
+              </Card>
             );
           })}
         </section>
 
-        <section className="inventory-toolbar" aria-label="Inventory controls">
-          <label className="inventory-search">
-            <SearchIcon className="inventory-search__icon" />
+        {/* Toolbar */}
+        <section className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-center" aria-label="Inventory controls">
+          <div className="flex items-center gap-3 min-h-[48px] px-4 bg-white border border-slate-200 rounded-full shadow-sm focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-50 transition-all">
+            <SearchIcon className="w-5 h-5 text-slate-400 shrink-0" />
             <span className="sr-only">Search inventory</span>
-            <input
+            <Input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search inventory..."
+              className="border-0 bg-transparent shadow-none h-auto p-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-400 text-slate-900"
             />
-          </label>
+          </div>
 
-          <div className="inventory-filters" role="tablist" aria-label="Inventory filters">
+          <div className="flex gap-2 items-center" role="tablist" aria-label="Inventory filters">
             {filters.map((filter) => (
-              <button
+              <Button
                 key={filter.key}
                 type="button"
-                className={`inventory-filter${activeFilter === filter.key ? ' inventory-filter--active' : ''}`}
+                variant={activeFilter === filter.key ? 'default' : 'outline'}
+                className="min-h-[48px] px-6 text-sm font-semibold rounded-full shadow-sm"
                 onClick={() => setActiveFilter(filter.key)}
                 aria-pressed={activeFilter === filter.key}
               >
                 {filter.label}
-              </button>
+              </Button>
             ))}
           </div>
         </section>
 
-        <section className="inventory-table-card">
-          <div className="inventory-table-scroll">
-            <table className="inventory-table">
-              <thead>
-                <tr>
-                  <th>Item Name</th>
-                  <th>Category</th>
-                  <th>Quantity</th>
-                  <th>Location</th>
-                  <th>Last Restocked</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item) => {
-                  const StatusIcon = statusIconMap[item.status];
+        {/* Inventory Table */}
+        <Card className="rounded-3xl border-border/40 shadow-xl overflow-hidden p-0 bg-white/50 backdrop-blur-sm">
+          <Table className="min-w-[980px]">
+            <TableHeader className="bg-slate-50/50">
+              <TableRow className="border-b-slate-200 hover:bg-transparent">
+                <TableHead className="px-6 py-[18px] text-slate-900 text-[0.85rem] font-bold uppercase tracking-wider">Item Name</TableHead>
+                <TableHead className="px-6 py-[18px] text-slate-900 text-[0.85rem] font-bold uppercase tracking-wider">Category</TableHead>
+                <TableHead className="px-6 py-[18px] text-slate-900 text-[0.85rem] font-bold uppercase tracking-wider">Quantity</TableHead>
+                <TableHead className="px-6 py-[18px] text-slate-900 text-[0.85rem] font-bold uppercase tracking-wider">Location</TableHead>
+                <TableHead className="px-6 py-[18px] text-slate-900 text-[0.85rem] font-bold uppercase tracking-wider">Last Restocked</TableHead>
+                <TableHead className="px-6 py-[18px] text-slate-900 text-[0.85rem] font-bold uppercase tracking-wider">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredItems.map((item) => {
+                const StatusIcon = statusIconMap[item.status];
+                const styles = toneStyles[item.status];
 
-                  return (
-                    <tr key={item.name}>
-                      <td>
-                        <div className="inventory-item">
-                          <div className="inventory-item__icon">
-                            <CubeIcon className="inventory-item__icon-svg" />
-                          </div>
-                          <span className="inventory-item__name">{item.name}</span>
+                return (
+                  <TableRow key={item.name} className="border-b-slate-100/60 hover:bg-blue-50/30 transition-colors">
+                    <TableCell className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="grid place-items-center w-10 h-10 text-blue-500 bg-blue-50 rounded-xl">
+                          <CubeIcon className="w-5 h-5" />
                         </div>
-                      </td>
-                      <td>{item.category}</td>
-                      <td>
-                        <div className="inventory-quantity">
-                          <strong>{item.quantity}</strong>
-                          <span>/ {item.minimum} min</span>
-                        </div>
-                      </td>
-                      <td>{item.location}</td>
-                      <td>{item.lastRestocked}</td>
-                      <td>
-                        <span className={`inventory-status inventory-status--${item.status}`}>
-                          <StatusIcon className="inventory-status__icon" />
-                          <span>
-                            {item.status === 'low'
-                              ? 'Low Stock'
-                              : item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                          </span>
+                        <span className="text-slate-900 font-semibold">{item.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-slate-600">{item.category}</TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="flex items-baseline gap-2">
+                        <strong className="text-slate-900 font-semibold">{item.quantity}</strong>
+                        <span className="text-slate-500 text-[0.78rem] leading-[1.1]">/ {item.minimum} min</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-slate-600">{item.location}</TableCell>
+                    <TableCell className="px-6 py-4 text-slate-600">{item.lastRestocked}</TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'gap-2 min-h-[32px] px-3 rounded-full border-0 text-[0.8rem] font-bold uppercase tracking-wider',
+                          styles.badge
+                        )}
+                      >
+                        <StatusIcon className="w-4 h-4" />
+                        <span>
+                          {item.status === 'low'
+                            ? 'Low Stock'
+                            : item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                         </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       </main>
     </div>
   );

@@ -1,4 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import type { Room } from './data';
 import {
   PulseIcon,
@@ -11,19 +23,6 @@ type RoomDetailModalProps = {
   room: Room;
   onClose: () => void;
 };
-
-function CloseIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="m7 7 10 10M17 7 7 17"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 function HeartIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -85,24 +84,36 @@ const metricCards = [
     label: 'Heart Rate',
     icon: HeartIcon,
     tone: 'critical',
+    bg: 'bg-[rgba(239,68,68,0.1)]',
+    iconBg: 'bg-[rgba(239,68,68,0.13)]',
+    iconColor: 'text-[#ef4444]',
   },
   {
     key: 'bloodPressure',
     label: 'Blood Pressure',
     icon: PressureIcon,
     tone: 'warning',
+    bg: 'bg-[rgba(245,158,11,0.1)]',
+    iconBg: 'bg-[rgba(245,158,11,0.13)]',
+    iconColor: 'text-[#f59e0b]',
   },
   {
     key: 'temperature',
     label: 'Temperature',
     icon: ThermometerIcon,
     tone: 'cool',
+    bg: 'bg-[rgba(245,158,11,0.1)]',
+    iconBg: 'bg-[rgba(59,130,246,0.13)]',
+    iconColor: 'text-[#3b82f6]',
   },
   {
     key: 'oxygen',
     label: 'O₂ Saturation',
     icon: OxygenIcon,
     tone: 'success',
+    bg: 'bg-[rgba(245,158,11,0.1)]',
+    iconBg: 'bg-[rgba(16,185,129,0.13)]',
+    iconColor: 'text-[#10b981]',
   },
 ] as const;
 
@@ -159,92 +170,109 @@ export function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
   }, [onClose]);
 
   return (
-    <div
-      className="room-modal-backdrop"
-      role="presentation"
-      onClick={onClose}
-    >
-      <section
-        className="room-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="room-modal-title"
-        onClick={(event) => event.stopPropagation()}
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        className="max-w-[872px] max-h-[calc(100vh-48px)] p-0 gap-0 rounded-2xl border-border shadow-2xl overflow-hidden"
+        showCloseButton={false}
       >
-        <header className="room-modal__header">
+        {/* Header */}
+        <DialogHeader className="flex-row items-center justify-between gap-4 p-6 border-b border-border bg-gradient-to-b from-blue-50/50 to-transparent space-y-0">
           <div>
-            <h2 id="room-modal-title">{room.id}</h2>
-            <p>Patient: {room.patient ?? 'Unassigned'}</p>
+            <DialogTitle className="text-2xl text-slate-900">{room.id}</DialogTitle>
+            <DialogDescription className="mt-1.5 text-[1.08rem] text-slate-500">
+              Patient: {room.patient ?? 'Unassigned'}
+            </DialogDescription>
           </div>
-
-          <button
+          <Button
             type="button"
-            className="room-modal__close"
+            variant="outline"
+            size="icon"
+            className="w-10 h-10 rounded-full border-slate-200 text-slate-600 hover:bg-slate-50"
             aria-label="Close room details"
             onClick={onClose}
           >
-            <CloseIcon className="room-modal__close-icon" />
-          </button>
-        </header>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="w-5 h-5">
+              <path d="m7 7 10 10M17 7 7 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </Button>
+        </DialogHeader>
 
-        <div className="room-modal__content">
-          <section className="room-modal__stream">
-            <span className="room-modal__live-badge">
-              <span className="room-modal__live-dot" aria-hidden="true" />
+        {/* Content */}
+        <div className="flex flex-col gap-6 p-6 overflow-auto bg-white">
+          {/* Live Stream Placeholder */}
+          <section className="relative min-h-[460px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+            <Badge className="bg-blue-600 text-white border-0 rounded-full px-3 py-1 text-[0.78rem] font-semibold gap-2">
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse" aria-hidden="true" />
               LIVE
-            </span>
+            </Badge>
 
             {frameSrc ? (
               <img
-                className="room-modal__stream-image"
+                className="absolute inset-0 w-full h-full object-cover rounded-2xl"
                 src={frameSrc}
                 alt="Live camera feed"
               />
             ) : (
-              <div className="room-modal__stream-placeholder">
-                <PulseIcon className="room-modal__stream-icon" />
-                <strong>{connected ? 'Connecting to camera...' : room.streamLabel}</strong>
-                <span>{connected ? 'Please wait' : room.cameraLabel}</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400 text-center">
+                <PulseIcon className="w-12 h-12 text-slate-300" />
+                <strong className="text-[1.15rem] font-medium text-slate-600">
+                  {connected ? 'Connecting to camera...' : room.streamLabel}
+                </strong>
+                <span className="text-[0.92rem] text-slate-400">
+                  {connected ? 'Please wait' : room.cameraLabel}
+                </span>
               </div>
             )}
           </section>
 
-          <section className="room-modal__metrics">
-            <h3>Vital Signs</h3>
-            <div className="room-modal__metric-grid">
+          {/* Vital Signs */}
+          <section className="flex flex-col gap-4">
+            <h3 className="m-0 text-[1.75rem]">Vital Signs</h3>
+            <div className="grid grid-cols-2 gap-4">
               {metricCards.map((metric) => {
                 const Icon = metric.icon;
                 const value = room.vitals[metric.key];
 
                 return (
-                  <article
+                  <Card
                     key={metric.key}
-                    className={`metric-card metric-card--${metric.tone}`}
+                    className={cn(
+                      'flex items-center gap-3 min-h-[86px] p-4 border-[rgba(0,0,0,0.02)] rounded-[18px] shadow-none',
+                      metric.bg
+                    )}
                   >
-                    <div className={`metric-card__icon metric-card__icon--${metric.tone}`}>
-                      <Icon className="metric-card__svg" />
+                    <div className={cn('grid place-items-center w-10 h-10 rounded-[14px]', metric.iconBg, metric.iconColor)}>
+                      <Icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="metric-card__label">{metric.label}</span>
-                      <strong className="metric-card__value">{value}</strong>
+                      <span className="block text-[#6b7280] text-[0.84rem] leading-[1.2]">{metric.label}</span>
+                      <strong className="block mt-1 text-[1.15rem] leading-[1.2]">{value}</strong>
                     </div>
-                  </article>
+                  </Card>
                 );
               })}
             </div>
           </section>
         </div>
 
-        <footer className="room-modal__actions">
-          <button type="button" className="room-modal__action room-modal__action--records">
+        {/* Footer Actions */}
+        <DialogFooter className="grid grid-cols-2 gap-3 p-4 px-6 pb-6 border-t border-[rgba(44,62,80,0.06)] sm:justify-stretch">
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-[48px] rounded-full font-medium"
+          >
             View Full Records
-          </button>
-          <button type="button" className="room-modal__action room-modal__action--analysis">
-            <SendIcon className="room-modal__action-icon" />
+          </Button>
+          <Button
+            type="button"
+            className="min-h-[48px] gap-2.5 rounded-full font-medium"
+          >
+            <SendIcon className="w-5 h-5" />
             Request AI Analysis
-          </button>
-        </footer>
-      </section>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
