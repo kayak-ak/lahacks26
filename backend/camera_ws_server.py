@@ -108,6 +108,12 @@ async def capture_loop():
                 cv2.putText(
                     img, label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 3
                 )
+            else:
+                label = "VACANT"
+                color = (128, 128, 128)
+                cv2.putText(
+                    img, label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 3
+                )
 
             _, buffer = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 80])
             latest_frame_bytes = buffer.tobytes()

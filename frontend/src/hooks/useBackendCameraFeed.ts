@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 export type Detection = {
   personDetected: boolean;
-  status: 'NORMAL' | 'ALERT' | 'NONE';
+  status: 'NORMAL' | 'ALERT' | 'VACANT';
   landmarks: { x: number; y: number; z: number; visibility: number }[];
 };
 
