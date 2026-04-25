@@ -6,31 +6,21 @@ import mediapipe as mp
 import numpy as np
 import websockets
 
-from mediapipe.tasks import python as mp_python
-from mediapipe.tasks.python import vision
-
-MODEL_PATH = "pose_landmarker.task"
-
-BaseOptions = mp_python.BaseOptions
-PoseLandmarker = vision.PoseLandmarker
-PoseLandmarkerOptions = vision.PoseLandmarkerOptions
-PoseLandmark = vision.PoseLandmark
-PoseLandmarksConnections = vision.PoseLandmarksConnections
-VisionRunningMode = vision.RunningMode
-mp_draw = vision.drawing_utils
+mp_pose = mp.solutions.pose
+mp_draw = mp.solutions.drawing_utils
 
 CURL_THRESHOLD = 6.0
 
 KEY_LANDMARK_INDICES = [
-    PoseLandmark.NOSE,
-    PoseLandmark.LEFT_SHOULDER,
-    PoseLandmark.RIGHT_SHOULDER,
-    PoseLandmark.LEFT_HIP,
-    PoseLandmark.RIGHT_HIP,
-    PoseLandmark.LEFT_KNEE,
-    PoseLandmark.RIGHT_KNEE,
-    PoseLandmark.LEFT_ANKLE,
-    PoseLandmark.RIGHT_ANKLE,
+    mp_pose.PoseLandmark.NOSE,
+    mp_pose.PoseLandmark.LEFT_SHOULDER,
+    mp_pose.PoseLandmark.RIGHT_SHOULDER,
+    mp_pose.PoseLandmark.LEFT_HIP,
+    mp_pose.PoseLandmark.RIGHT_HIP,
+    mp_pose.PoseLandmark.LEFT_KNEE,
+    mp_pose.PoseLandmark.RIGHT_KNEE,
+    mp_pose.PoseLandmark.LEFT_ANKLE,
+    mp_pose.PoseLandmark.RIGHT_ANKLE,
 ]
 
 
@@ -43,8 +33,8 @@ def is_curled_up(landmarks_list):
     ys = [p[1] for p in points]
     bbox_area = (max(xs) - min(xs)) * (max(ys) - min(ys))
 
-    ls = landmarks_list[PoseLandmark.LEFT_SHOULDER.value]
-    rs = landmarks_list[PoseLandmark.RIGHT_SHOULDER.value]
+    ls = landmarks_list[mp_pose.PoseLandmark.LEFT_SHOULDER.value]
+    rs = landmarks_list[mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
     shoulder_width = ((ls.x - rs.x) ** 2 + (ls.y - rs.y) ** 2) ** 0.5
 
     if shoulder_width < 1e-6:
@@ -54,13 +44,11 @@ def is_curled_up(landmarks_list):
     return normalized_spread < CURL_THRESHOLD
 
 
-# Global frame state shared across clients
 latest_frame_bytes: bytes | None = None
 cap: cv2.VideoCapture | None = None
 
 
 def _generate_placeholder_frame(text: str) -> bytes:
-    """Create a placeholder JPEG frame with the given text."""
     img = np.zeros((480, 640, 3), dtype=np.uint8)
     cv2.putText(img, text, (80, 250), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (200, 200, 200), 2)
     _, buffer = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 80])
@@ -68,18 +56,8 @@ def _generate_placeholder_frame(text: str) -> bytes:
 
 
 async def capture_loop():
-    """Background task: continuously read frames, run pose detection,
-    encode to JPEG, and store in latest_frame_bytes."""
     global latest_frame_bytes, cap
 
-    options = PoseLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path=MODEL_PATH),
-        running_mode=VisionRunningMode.VIDEO,
-        min_pose_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
-    )
-
-    # Retry camera opening until permission is granted
     while True:
         for idx in (1, 0):
             cap = cv2.VideoCapture(idx)
@@ -88,15 +66,20 @@ async def capture_loop():
             cap.release()
         if cap.isOpened():
             break
-        print("Waiting for camera permission... (grant access in System Settings > Privacy & Security > Camera)")
-        latest_frame_bytes = _generate_placeholder_frame("Waiting for camera permission...")
+        print(
+            "Waiting for camera permission... (grant access in System Settings > Privacy & Security > Camera)"
+        )
+        latest_frame_bytes = _generate_placeholder_frame(
+            "Waiting for camera permission..."
+        )
         await asyncio.sleep(2)
 
     print("Camera opened successfully. Streaming frames...")
 
-    with PoseLandmarker.create_from_options(options) as landmarker:
-        timestamp_ms = 0
-
+    with mp_pose.Pose(
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    ) as pose:
         while cap.isOpened():
             success, img = cap.read()
             if not success:
@@ -105,38 +88,36 @@ async def capture_loop():
 
             img = cv2.flip(img, 1)
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
+            results = pose.process(img_rgb)
 
-            timestamp_ms = int(time.time() * 1000)
-            pose_results = landmarker.detect_for_video(mp_image, timestamp_ms)
-
-            if pose_results.pose_landmarks and len(pose_results.pose_landmarks) > 0:
+            if results.pose_landmarks:
                 mp_draw.draw_landmarks(
-                    img_rgb, pose_results.pose_landmarks[0], PoseLandmarksConnections.POSE_LANDMARKS
+                    img_rgb,
+                    results.pose_landmarks,
+                    mp_pose.POSE_CONNECTIONS,
                 )
                 img = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
 
-                if is_curled_up(pose_results.pose_landmarks[0]):
+                if is_curled_up(results.pose_landmarks.landmark):
                     label = "ALERT"
                     color = (0, 0, 255)
                 else:
                     label = "NORMAL"
                     color = (0, 255, 0)
 
-                cv2.putText(img, label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 3)
+                cv2.putText(
+                    img, label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 3
+                )
 
-            # Encode frame as JPEG
             _, buffer = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 80])
             latest_frame_bytes = buffer.tobytes()
 
-            # Yield control so WebSocket handler can send
             await asyncio.sleep(0.01)
 
     cap.release()
 
 
 async def stream_handler(websocket):
-    """Send the latest frame to every connected client at ~30 fps."""
     print(f"Client connected: {websocket.remote_address}")
     try:
         while True:
@@ -145,7 +126,7 @@ async def stream_handler(websocket):
                     await websocket.send(latest_frame_bytes)
                 except websockets.exceptions.ConnectionClosed:
                     break
-            await asyncio.sleep(0.033)  # ~30 fps
+            await asyncio.sleep(0.033)
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
@@ -153,12 +134,11 @@ async def stream_handler(websocket):
 
 
 async def main():
-    """Start the capture loop and the WebSocket server concurrently."""
     capture_task = asyncio.create_task(capture_loop())
 
     async with websockets.serve(stream_handler, "0.0.0.0", 8765):
         print("WebSocket server running on ws://0.0.0.0:8765")
-        await asyncio.Future()  # Run forever
+        await asyncio.Future()
 
     capture_task.cancel()
 
