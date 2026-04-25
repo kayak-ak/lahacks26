@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -304,14 +304,11 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
             </div>
             {/* Live Stream Placeholder */}
             <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[260px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
-            <Badge className="absolute top-4 left-4 z-10 bg-blue-600 text-white border-0 rounded-full px-3 py-1 text-[0.78rem] font-semibold gap-2 shadow-sm">
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse" aria-hidden="true" />
-              LIVE
-            </Badge>
+            
 
             {frameSrc ? (
               <img
-                className="w-full h-auto object-contain rounded-xl scale-x-[-1]"
+                className="w-full h-auto object-contain rounded-xl"
                 src={frameSrc}
                 alt="Live camera feed"
               />
