@@ -2,6 +2,7 @@ export type RoomStatus = 'stable' | 'critical' | 'vacant' | 'observation';
 
 export type Room = {
   id: string;
+  roomId?: string;
   patient?: string;
   age?: number;
   reason?: string;

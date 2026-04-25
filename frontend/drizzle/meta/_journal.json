@@ -8,6 +8,13 @@
       "when": 1777114193304,
       "tag": "0000_sturdy_daimon_hellstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777155982018,
+      "tag": "0001_flawless_gunslinger",
+      "breakpoints": true
     }
   ]
 }

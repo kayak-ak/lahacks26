@@ -15,6 +15,7 @@ from agent.tools.supabase_tools import (
     find_available_nurses,
     log_event,
     query_patient_by_name,
+    get_vitals_by_patient_name,
 )
 from agent.tools.twilio_tools import send_sms_to_nurse, blast_sms_to_nurses
 from integrations.openai_client import get_openai_client
@@ -120,10 +121,33 @@ def _handle_family_update(entities: dict) -> tuple[str, str]:
         patient = query_patient_by_name(patient_name)
         if patient:
             acuity = patient.get("acuity_level", "unknown")
+            status = (
+                "stable"
+                if acuity <= 1
+                else "observation"
+                if acuity <= 3
+                else "critical"
+            )
+            reply = f"Patient {patient_name} is {status} (acuity {acuity})."
+            vitals_data = get_vitals_by_patient_name(patient_name)
+            if vitals_data and vitals_data.get("vitals"):
+                v = vitals_data["vitals"]
+                parts = []
+                if v.get("heart_rate"):
+                    parts.append(f"HR:{v['heart_rate']}")
+                if v.get("bp_systolic") and v.get("bp_diastolic"):
+                    parts.append(f"BP:{v['bp_systolic']}/{v['bp_diastolic']}")
+                if v.get("temperature_f"):
+                    parts.append(f"Temp:{v['temperature_f']}F")
+                if v.get("oxygen_saturation"):
+                    parts.append(f"O2:{v['oxygen_saturation']}%")
+                if parts:
+                    reply += " " + " ".join(parts)
+                if len(reply) > 300:
+                    reply = reply[:300]
             return (
                 "family_update",
-                f"Patient {patient_name} has acuity level {acuity}. "
-                "An update will be prepared for the family.",
+                reply,
             )
     return "family_update", "Family update noted. We'll prepare an update."
 

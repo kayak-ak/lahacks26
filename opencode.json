@@ -4,6 +4,10 @@
     "figma": {
       "type": "remote",
       "url": "https://mcp.figma.com/mcp"
+    },
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp"
     }
   }
 }

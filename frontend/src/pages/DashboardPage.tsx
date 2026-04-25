@@ -4,10 +4,11 @@ import { Sidebar } from '../components/dashboard/Sidebar';
 import { HospitalFloor } from '../components/dashboard/HospitalFloor';
 import { RoomDetailModal } from '../components/dashboard/RoomDetailModal';
 import { AdmitPatientModal } from '../components/dashboard/AdmitPatientModal';
-import { rooms, type Room } from '../components/dashboard/data';
+import { useRoomData } from '../hooks/useRoomData';
+import type { Room } from '../components/dashboard/data';
 
 export function DashboardPage() {
-  const [roomsData, setRoomsData] = useState<Room[]>(rooms);
+  const { rooms: roomsData, setRooms: setRoomsData } = useRoomData();
   const [selectedRoomId, setSelectedRoomId] = useState('Room 102');
   const [openRoomId, setOpenRoomId] = useState<string | null>(null);
   const [admittingRoomId, setAdmittingRoomId] = useState<string | null>(null);
