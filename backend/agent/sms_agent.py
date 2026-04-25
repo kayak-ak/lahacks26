@@ -4,25 +4,54 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from uagents import Agent, Context
+from patch_cosmpy import patch_cosmpy_protobuf
 
-from agent.models import (
-    SMSInboundRequest,
-    SMSInboundResponse,
-    SMSOutboundRequest,
-    SMSOutboundResponse,
-    CallOutRequest,
-    CallOutResponse,
-)
+patch_cosmpy_protobuf()
+
+from uagents import Agent, Context, Model
+
 from agent.prompts import SMS_SYSTEM_PROMPT
 from agent.tools.supabase_tools import (
     find_available_nurses,
-    update_shift_status,
     log_event,
-    query_patient,
+    query_patient_by_name,
 )
 from agent.tools.twilio_tools import send_sms_to_nurse, blast_sms_to_nurses
 from integrations.openai_client import get_openai_client
+
+
+class SMSInboundRequest(Model):
+    body: str
+    from_number: str
+
+
+class SMSInboundResponse(Model):
+    intent: str
+    reply: str
+    action_taken: str
+
+
+class SMSOutboundRequest(Model):
+    to_number: str
+    message: str
+
+
+class SMSOutboundResponse(Model):
+    success: bool
+    message_sid: str
+
+
+class CallOutRequest(Model):
+    nurse_name: str
+    date: str
+    reason: str
+
+
+class CallOutResponse(Model):
+    success: bool
+    replacement_name: str
+    message: str
+
 
 sms_agent = Agent(
     name="sms_triage",
@@ -59,7 +88,7 @@ def _handle_patient_request(entities: dict) -> tuple[str, str]:
     request_type = entities.get("request_type", "general")
 
     if patient_name:
-        patient = query_patient(patient_name)
+        patient = query_patient_by_name(patient_name)
         if patient and patient.get("room_id"):
             return (
                 "patient_request",
@@ -88,7 +117,7 @@ def _handle_shift_blast(entities: dict) -> tuple[str, str]:
 def _handle_family_update(entities: dict) -> tuple[str, str]:
     patient_name = entities.get("patient_name")
     if patient_name:
-        patient = query_patient(patient_name)
+        patient = query_patient_by_name(patient_name)
         if patient:
             acuity = patient.get("acuity_level", "unknown")
             return (
@@ -99,9 +128,9 @@ def _handle_family_update(entities: dict) -> tuple[str, str]:
     return "family_update", "Family update noted. We'll prepare an update."
 
 
-@sms_agent.on_query(model=SMSInboundRequest, replies=SMSInboundResponse)
+@sms_agent.on_rest_post("/sms/inbound", SMSInboundRequest, SMSInboundResponse)
 async def handle_sms_inbound(
-    ctx: Context, _sender: str, msg: SMSInboundRequest
+    ctx: Context, req: SMSInboundRequest
 ) -> SMSInboundResponse:
     client = get_openai_client()
 
@@ -110,7 +139,7 @@ async def handle_sms_inbound(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": SMS_SYSTEM_PROMPT},
-                {"role": "user", "content": msg.body},
+                {"role": "user", "content": req.body},
             ],
             response_format={"type": "json_object"},
         )
@@ -140,23 +169,19 @@ async def handle_sms_inbound(
     final_reply = reply
 
     if intent == "call_out":
-        action_taken, detail = _handle_call_out(entities)
-        final_reply = detail
+        action_taken, final_reply = _handle_call_out(entities)
     elif intent == "patient_request":
-        action_taken, detail = _handle_patient_request(entities)
-        final_reply = detail
+        action_taken, final_reply = _handle_patient_request(entities)
     elif intent == "shift_blast":
-        action_taken, detail = _handle_shift_blast(entities)
-        final_reply = detail
+        action_taken, final_reply = _handle_shift_blast(entities)
     elif intent == "family_update":
-        action_taken, detail = _handle_family_update(entities)
-        final_reply = detail
+        action_taken, final_reply = _handle_family_update(entities)
 
     log_event(
         "sms_inbound",
         {
-            "from": msg.from_number,
-            "body": msg.body,
+            "from": req.from_number,
+            "body": req.body,
             "intent": intent,
             "action_taken": action_taken,
         },
@@ -169,14 +194,14 @@ async def handle_sms_inbound(
     )
 
 
-@sms_agent.on_query(model=SMSOutboundRequest, replies=SMSOutboundResponse)
+@sms_agent.on_rest_post("/sms/outbound", SMSOutboundRequest, SMSOutboundResponse)
 async def handle_sms_outbound(
-    ctx: Context, _sender: str, msg: SMSOutboundRequest
+    ctx: Context, req: SMSOutboundRequest
 ) -> SMSOutboundResponse:
     try:
-        sid = send_sms_to_nurse(msg.to_number, msg.message)
+        sid = send_sms_to_nurse(req.to_number, req.message)
         log_event(
-            "sms_outbound", {"to": msg.to_number, "message": msg.message, "sid": sid}
+            "sms_outbound", {"to": req.to_number, "message": req.message, "sid": sid}
         )
         return SMSOutboundResponse(success=True, message_sid=sid)
     except Exception as e:
@@ -184,11 +209,9 @@ async def handle_sms_outbound(
         return SMSOutboundResponse(success=False, message_sid="")
 
 
-@sms_agent.on_query(model=CallOutRequest, replies=CallOutResponse)
-async def handle_call_out(
-    ctx: Context, _sender: str, msg: CallOutRequest
-) -> CallOutResponse:
-    available = find_available_nurses(msg.date)
+@sms_agent.on_rest_post("/sms/call-out", CallOutRequest, CallOutResponse)
+async def handle_call_out(ctx: Context, req: CallOutRequest) -> CallOutResponse:
+    available = find_available_nurses(req.date)
     if not available:
         return CallOutResponse(
             success=False,
@@ -201,14 +224,14 @@ async def handle_call_out(
     if phone:
         send_sms_to_nurse(
             phone,
-            f"Hi {replacement['name']}, can you cover {msg.date} for {msg.nurse_name}? Reply YES to confirm.",
+            f"Hi {replacement['name']}, can you cover {req.date} for {req.nurse_name}? Reply YES to confirm.",
         )
 
     log_event(
         "call_out_processed",
         {
-            "nurse_name": msg.nurse_name,
-            "date": msg.date,
+            "nurse_name": req.nurse_name,
+            "date": req.date,
             "replacement": replacement.get("name"),
         },
     )
@@ -220,7 +243,7 @@ async def handle_call_out(
     )
 
 
-@sms_agent.on_rest_get("/sms/health", SMSOutboundResponse)
+@sms_agent.on_rest_get("/health", SMSOutboundResponse)
 async def health_check(ctx: Context) -> dict:
     return {"status": "ok", "agent": sms_agent.name}
 

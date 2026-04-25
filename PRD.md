@@ -42,8 +42,6 @@ Nurses spend up to 35% of their shift on administrative tasks — call-outs, fam
 | LLM Core | **OpenAI GPT-4o** (or similar) | Tool-calling / function-calling for structured agent actions (schedule edits, alerts, lookups). |
 | Agent Orchestration | **Custom Flask routes + tool registry** | Agent receives natural language → decides which tool to call (calendar, SMS, DB query, alert). |
 | Voice Synthesis | **ElevenLabs API** | Low-latency, natural TTS for outbound family-update calls and internal nurse announcements. |
-| Voice Telephony | **Twilio Voice** | Inbound/outbound call handling; integrates with ElevenLabs for full conversational IVR. |
-| SMS | **Twilio SMS** | Schedule blast notifications, triage patient requests, family text updates. |
 
 ### 4.3 Computer Vision
 
@@ -53,19 +51,12 @@ Nurses spend up to 35% of their shift on administrative tasks — call-outs, fam
 | Room Occupancy | **MediaPipe + simple CV** | Detect open vs. occupied rooms and push status to Supabase for dashboard rendering. |
 | Processing | **Python CV service** | Separate lightweight Flask microservice or threaded process consuming RTSP camera feeds, running MediaPipe inference, posting events to Supabase. |
 
-### 4.4 Scheduling & Integration
-
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| Calendar | **Google Calendar API** | Authoritative shift calendar; reads/writes via service account. |
-| Agent ↔ Calendar | **MCP (Model Context Protocol)** | Structured tool interface allowing the AI agent to create, modify, and delete calendar events (shift swaps, call-out coverage). |
-
-### 4.5 Frontend
+### 4.4 Frontend
 
 | Component | Technology | Rationale |
 |-----------|-----------|-----------|
 | SPA Framework | **React + Vite** | Fast HMR for hackathon velocity; component ecosystem. |
-| 3D / Spatial View | **Three.js / React Three Fiber** | Digital twin of the hospital floor — color-coded rooms, equipment markers, live staff positions. |
+| 2D / Spatial View | 2D render (with svg) and plotted points | Digital twin of the hospital floor — color-coded rooms, equipment markers, live staff positions. |
 | State | **React Query + Supabase Realtime hooks** | Server-state caching + live subscriptions for real-time badge updates. |
 | Styling | **Tailwind CSS** | Rapid prototyping with utility classes. |
 
@@ -75,7 +66,7 @@ Nurses spend up to 35% of their shift on administrative tasks — call-outs, fam
 ┌──────────────────────────────────────────────────────────────────┐
 │                        FRONTEND (React + Vite)                    │
 │  ┌─────────────────┐  ┌──────────────────┐  ┌────────────────┐  │
-│  │  Dashboard       │  │  Three.js        │  │  Shift Mgmt    │  │
+│  │  Dashboard       │  │  svg and plotted points │  │  Shift Mgmt    │  │
 │  │  (alerts, feeds) │  │  Digital Twin     │  │  (calendar UI) │  │
 │  └────────┬────────┘  └────────┬─────────┘  └───────┬────────┘  │
 │           │   Supabase Realtime │                    │            │
@@ -94,7 +85,7 @@ Nurses spend up to 35% of their shift on administrative tasks — call-outs, fam
 │  │ /voice      │  │ /sms         │  │ /agent (LLM orchestrate) ││
 │  │ Twilio web  │  │ Twilio web   │  │ tool-call dispatcher     ││
 │  └──────┬──────┘  └──────┬───────┘  └──────────┬──────────────┘│
-│         │                │                      │                │
+│         │                │                      │                │tt
 │  ┌──────▼──────┐  ┌──────▼───────┐  ┌──────────▼──────────────┐│
 │  │ ElevenLabs  │  │ Twilio SMS   │  │ MCP → Google Calendar   ││
 │  │ TTS / STT   │  │ outbound     │  │ shift CRUD              ││

@@ -1,17 +1,8 @@
-import asyncio
-import json
+import requests as http_requests
 
 from flask import Blueprint, request, Response, jsonify
 
-from agent.models import (
-    SMSInboundRequest,
-    SMSInboundResponse,
-    SMSOutboundRequest,
-    SMSOutboundResponse,
-)
-from agent import get_sms_agent_address
-
-from uagents.query import query
+from agent import SMS_AGENT_URL
 from integrations.twilio_client import send_sms
 
 sms_bp = Blueprint("sms", __name__)
@@ -28,18 +19,13 @@ def sms_inbound():
             mimetype="text/xml",
         )
 
-    address = get_sms_agent_address()
-
-    async def _query_agent():
-        response = await query(
-            destination=address,
-            message=SMSInboundRequest(body=body, from_number=from_number),
+    try:
+        resp = http_requests.post(
+            f"{SMS_AGENT_URL}/sms/inbound",
+            json={"body": body, "from_number": from_number},
             timeout=30.0,
         )
-        return json.loads(response.decode_payload())
-
-    try:
-        result = asyncio.run(_query_agent())
+        result = resp.json()
         reply = result.get("reply", "Your message has been received.")
     except Exception:
         reply = "Your message has been received. A nurse will respond shortly."
@@ -57,22 +43,18 @@ def sms_outbound():
     if not to_number or not message:
         return jsonify({"error": "to_number and message are required"}), 400
 
-    address = get_sms_agent_address()
-
-    async def _query_agent():
-        response = await query(
-            destination=address,
-            message=SMSOutboundRequest(to_number=to_number, message=message),
+    try:
+        resp = http_requests.post(
+            f"{SMS_AGENT_URL}/sms/outbound",
+            json={"to_number": to_number, "message": message},
             timeout=15.0,
         )
-        return json.loads(response.decode_payload())
-
-    try:
-        result = asyncio.run(_query_agent())
-        return jsonify(result)
-    except Exception as e:
+        return jsonify(resp.json()), resp.status_code
+    except http_requests.exceptions.ConnectionError:
         try:
             sid = send_sms(to_number, message)
             return jsonify({"success": True, "message_sid": sid})
-        except Exception as e2:
-            return jsonify({"error": str(e2)}), 500
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

@@ -1,13 +1,9 @@
-import asyncio
-import json
+import requests as http_requests
 
 from flask import Blueprint, jsonify, request
 
 from db import supabase
-from agent.models import CallOutRequest, CallOutResponse
-from agent import get_sms_agent_address
-
-from uagents.query import query
+from agent import SMS_AGENT_URL
 
 shifts_bp = Blueprint("shifts", __name__)
 
@@ -37,22 +33,14 @@ def call_out():
     if not nurse_name or not date:
         return jsonify({"error": "nurse_name and date are required"}), 400
 
-    address = get_sms_agent_address()
-
-    async def _query_agent():
-        response = await query(
-            destination=address,
-            message=CallOutRequest(
-                nurse_name=nurse_name,
-                date=date,
-                reason=reason,
-            ),
+    try:
+        resp = http_requests.post(
+            f"{SMS_AGENT_URL}/sms/call-out",
+            json={"nurse_name": nurse_name, "date": date, "reason": reason},
             timeout=30.0,
         )
-        return json.loads(response.decode_payload())
-
-    try:
-        result = asyncio.run(_query_agent())
-        return jsonify(result)
+        return jsonify(resp.json()), resp.status_code
+    except http_requests.exceptions.ConnectionError:
+        return jsonify({"error": "SMS agent is not reachable"}), 503
     except Exception as e:
         return jsonify({"error": str(e)}), 500

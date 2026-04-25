@@ -1,12 +1,8 @@
-import asyncio
-import json
+import requests as http_requests
 
 from flask import Blueprint, request, jsonify
 
-from agent.models import ChatRequest, ChatResponse
-from agent import get_chat_agent_address
-
-from uagents.query import query
+from agent import CHAT_AGENT_URL
 
 agent_bp = Blueprint("agent", __name__)
 
@@ -20,18 +16,20 @@ def agent_chat():
     if not message:
         return jsonify({"error": "message is required"}), 400
 
-    address = get_chat_agent_address()
-
-    async def _query_agent():
-        response = await query(
-            destination=address,
-            message=ChatRequest(message=message, context=context),
+    try:
+        resp = http_requests.post(
+            f"{CHAT_AGENT_URL}/chat",
+            json={"message": message, "context": context},
             timeout=30.0,
         )
-        return json.loads(response.decode_payload())
-
-    try:
-        result = asyncio.run(_query_agent())
-        return jsonify(result)
+        return jsonify(resp.json()), resp.status_code
+    except http_requests.exceptions.ConnectionError:
+        return jsonify(
+            {"error": "Chat agent is not reachable", "reply": "", "tools_used": []}
+        ), 503
+    except http_requests.exceptions.Timeout:
+        return jsonify(
+            {"error": "Chat agent timed out", "reply": "", "tools_used": []}
+        ), 504
     except Exception as e:
         return jsonify({"error": str(e), "reply": "", "tools_used": []}), 500
