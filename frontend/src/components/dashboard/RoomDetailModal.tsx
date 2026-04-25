@@ -118,11 +118,44 @@ const metricCards = [
   },
 ] as const;
 
+// Pixel-sample region in the original 640×480 frame where the backend renders ALERT/NORMAL
+const SAMPLE_X = 10;
+const SAMPLE_Y = 20;
+const SAMPLE_W = 120;
+const SAMPLE_H = 32;
+
+function inferStatusFromCanvas(canvas: HTMLCanvasElement): 'normal' | 'alert' | 'vacant' {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return 'vacant';
+
+  const scaleX = canvas.width / 640;
+  const scaleY = canvas.height / 480;
+  const sx = Math.round(SAMPLE_X * scaleX);
+  const sy = Math.round(SAMPLE_Y * scaleY);
+  const sw = Math.round(SAMPLE_W * scaleX);
+  const sh = Math.round(SAMPLE_H * scaleY);
+
+  const { data } = ctx.getImageData(sx, sy, sw, sh);
+  let totalR = 0, totalG = 0, bright = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    if (r > 140 || g > 140) {
+      totalR += r;
+      totalG += g;
+      bright++;
+    }
+  }
+  if (bright < 20) return 'vacant';
+  return totalR > totalG * 1.4 ? 'alert' : totalG > totalR * 1.4 ? 'normal' : 'vacant';
+}
+
 export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetailModalProps) {
   const [frameSrc, setFrameSrc] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [vacancyTimer, setVacancyTimer] = useState(5000);
+  const [cvStatus, setCvStatus] = useState<'normal' | 'alert' | 'vacant' | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const ws = new WebSocket(WS_URL);
@@ -134,14 +167,28 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
     ws.onerror = () => setConnected(false);
 
     ws.onmessage = (event: MessageEvent) => {
-      if (event.data instanceof ArrayBuffer) {
-        const blob = new Blob([event.data], { type: 'image/jpeg' });
-        const url = URL.createObjectURL(blob);
-        setFrameSrc((prev) => {
-          if (prev) URL.revokeObjectURL(prev);
-          return url;
-        });
-      }
+      if (!(event.data instanceof ArrayBuffer)) return;
+      const blob = new Blob([event.data], { type: 'image/jpeg' });
+      const url = URL.createObjectURL(blob);
+      setFrameSrc((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+
+      // Decode the JPEG off-screen and sample pixel color to detect status
+      const img = new Image();
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0);
+        setCvStatus(inferStatusFromCanvas(canvas));
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(blob);
     };
 
     return () => {
@@ -200,20 +247,41 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
           </Button>
         </DialogHeader>
 
+        {/* Hidden canvas for per-frame pixel sampling */}
+        <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
+
         {/* Content */}
         <div className="flex flex-col flex-1 gap-6 p-6 overflow-y-auto bg-white min-h-0">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-slate-700">CV Status:</span>
-              <span className={cn(
-                "text-sm font-medium capitalize px-2.5 py-0.5 rounded-full border",
-                room.status === 'critical' ? 'bg-red-50 text-red-700 border-red-200' :
-                room.status === 'stable' ? 'bg-green-50 text-green-700 border-green-200' :
-                room.status === 'observation' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                'bg-slate-50 text-slate-700 border-slate-200'
-              )}>
-                {room.status}
-              </span>
+              {cvStatus === null ? (
+                <span className="text-sm text-slate-400 italic">Connecting...</span>
+              ) : (
+                <span className={cn(
+                  "text-sm font-semibold capitalize px-2.5 py-0.5 rounded-full border transition-all duration-300",
+                  cvStatus === 'alert' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
+                  cvStatus === 'normal' ? 'bg-green-50 text-green-700 border-green-200' :
+                  'bg-slate-50 text-slate-500 border-slate-200'
+                )}>
+                  {cvStatus}
+                </span>
+              )}
+              {cvStatus === 'alert' && (
+                <span className="text-xs text-red-600 font-medium">
+                  ⚠ Abnormal body position detected
+                </span>
+              )}
+              {cvStatus === 'vacant' && (
+                <span className="text-xs text-slate-400">
+                  No patient detected in frame
+                </span>
+              )}
+              {cvStatus === 'normal' && (
+                <span className="text-xs text-green-600">
+                  Patient resting normally
+                </span>
+              )}
             </div>
             {/* Live Stream Placeholder */}
             <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[260px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
