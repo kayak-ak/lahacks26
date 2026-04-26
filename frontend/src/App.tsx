@@ -8,6 +8,7 @@ import { TetrisPage } from './pages/TetrisPage';
 import { VoiceBubble } from './components/VoiceBubble';
 import { LogsPage } from './pages/LogsPage';
 import { HandoffPage } from './pages/HandoffPage';
+import { AppLayout } from './components/AppLayout';
 
 function App() {
   const [showTetris, setShowTetris] = useState(false);
@@ -30,10 +31,12 @@ function App() {
   return (
     <ConversationProvider>
       <Routes>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/logs" element={<LogsPage />} />
-        <Route path="/handoff" element={<HandoffPage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/logs" element={<LogsPage />} />
+          <Route path="/handoff" element={<HandoffPage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       <VoiceBubble />

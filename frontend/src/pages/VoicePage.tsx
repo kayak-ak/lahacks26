@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { ConversationProvider } from '@elevenlabs/react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sidebar } from '../components/dashboard/Sidebar';
 import { MicrophoneIcon } from '../components/dashboard/icons';
 import { useVoiceAgent } from '../hooks/useVoiceAgent';
 
@@ -70,10 +69,7 @@ function VoicePageInner() {
   };
 
   return (
-    <div className="flex h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 gap-3 overflow-hidden">
-      <Sidebar activeItem="voice" />
-      <div className="flex-1 rounded-2xl overflow-hidden border border-border/30 shadow-lg bg-white/80 backdrop-blur-sm h-full flex flex-col min-w-0">
-        <main className="flex flex-col gap-8 p-8 flex-1 overflow-auto min-h-0">
+    <main className="flex flex-col gap-8 p-8 flex-1 overflow-auto min-h-0">
           <section className="flex items-center justify-between gap-6">
             <div>
               <h1 className="m-0 text-[clamp(2rem,2.4vw,2.875rem)] leading-[1.15] tracking-[-0.03em] text-slate-900">
@@ -181,8 +177,6 @@ function VoicePageInner() {
             </p>
           </Card>
         </main>
-      </div>
-    </div>
   );
 }
 
