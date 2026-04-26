@@ -236,7 +236,7 @@ function ClockIcon(props: SVGProps<SVGSVGElement>) {
 export function HandoffPage() {
   const [handoffData, setHandoffData] = useState<HandoffData>(MOCK_HANDOFF);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [activeShiftTab, setActiveShiftTab] = useState<ShiftTab>('day');
   const [expandedShift, setExpandedShift] = useState<string | null>(null);
 
@@ -330,7 +330,7 @@ export function HandoffPage() {
               logged_at: row.created_at as string,
             };
           });
-          setLoggedEvents(mapped.filter((e) => e.occurred_at.startsWith(selectedDate)));
+          setLoggedEvents(mapped.filter((e) => new Date(e.occurred_at).toLocaleDateString('en-CA') === selectedDate));
         }
       } catch {
         // Supabase unavailable — keep local state
@@ -366,7 +366,7 @@ export function HandoffPage() {
                     logged_at: row.created_at as string,
                   };
                 });
-                setLoggedEvents(mapped.filter((e) => e.occurred_at.startsWith(selectedDate)));
+                setLoggedEvents(mapped.filter((e) => new Date(e.occurred_at).toLocaleDateString('en-CA') === selectedDate));
               }
             });
         })
@@ -820,7 +820,7 @@ export function HandoffPage() {
             </Button>
             <Button
               type="button"
-              disabled={!reportForm.patient_id}
+              disabled={!reportForm.patient_id || !reportForm.from_date || !reportForm.to_date}
               onClick={async () => {
                 const patient = allPatients.find((p) => p.id === reportForm.patient_id);
                 console.log('PDF report requested', {
