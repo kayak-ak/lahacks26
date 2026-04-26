@@ -5,7 +5,7 @@ import type { Room, RoomStatus } from './data';
 
 type HospitalFloorProps = {
   rooms: Room[];
-  selectedRoomId: string;
+  selectedRoomId: string | null;
   onSelectRoom: (roomId: string) => void;
   onOpenRoom: (roomId: string) => void;
 };

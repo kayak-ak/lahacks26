@@ -8,8 +8,9 @@ import type { Room } from './data';
 import { PaperclipIcon, SendIcon, SparkleIcon } from './icons';
 
 type AssistantSidebarProps = {
-  selectedRoom: Room;
+  selectedRoom: Room | null;
   onWidthChange: (width: number) => void;
+  onDeselectRoom: () => void;
 };
 
 function formatRoomPrompt(room: Room) {
@@ -23,6 +24,7 @@ function formatRoomPrompt(room: Room) {
 export function AssistantSidebar({
   selectedRoom,
   onWidthChange,
+  onDeselectRoom,
 }: AssistantSidebarProps) {
   const messages = useChatStore((s) => s.messages);
   const isLoading = useChatStore((s) => s.isLoading);
@@ -33,7 +35,7 @@ export function AssistantSidebar({
   const startX = useRef(0);
   const startWidth = useRef(0);
 
-  const sendDisabled = draft.trim().length === 0 || isLoading;
+  const sendDisabled = draft.trim().length === 0 || isLoading || !selectedRoom;
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -77,7 +79,7 @@ export function AssistantSidebar({
     const text = draft.trim();
     setDraft('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
-    sendMessage(text, formatRoomPrompt(selectedRoom));
+    sendMessage(text, formatRoomPrompt(selectedRoom!));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -164,11 +166,23 @@ export function AssistantSidebar({
 
         <Badge
           variant="secondary"
-          className="gap-1.5 bg-blue-50 text-blue-700 border-blue-200/60 border border-dashed text-[0.75rem] font-medium self-start"
+          className={cn(
+            "gap-1.5 bg-blue-50 text-blue-700 border-blue-200/60 border border-dashed text-[0.75rem] font-medium self-start pr-1.5",
+            !selectedRoom && "invisible"
+          )}
         >
           <PaperclipIcon className="w-3 h-3" />
-          {selectedRoom.id}
-          {selectedRoom.patient ? ` · ${selectedRoom.patient}` : ''}
+          {selectedRoom ? `${selectedRoom.id}${selectedRoom.patient ? ` · ${selectedRoom.patient}` : ''}` : '—'}
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); onDeselectRoom(); }}
+            className="grid place-items-center w-4 h-4 rounded-full hover:bg-blue-200/60 transition-colors"
+            aria-label="Deselect room"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </Badge>
       </form>
     </aside>

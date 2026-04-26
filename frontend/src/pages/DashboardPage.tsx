@@ -9,13 +9,13 @@ import type { Room } from '../components/dashboard/data';
 
 export function DashboardPage() {
   const { rooms: roomsData, setRooms: setRoomsData } = useRoomData();
-  const [selectedRoomId, setSelectedRoomId] = useState('Room 102');
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [openRoomId, setOpenRoomId] = useState<string | null>(null);
   const [admittingRoomId, setAdmittingRoomId] = useState<string | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(300);
 
   const selectedRoom =
-    roomsData.find((room) => room.id === selectedRoomId) ?? roomsData[0];
+    roomsData.find((room) => room.id === selectedRoomId) ?? null;
   const openRoom =
     roomsData.find((room) => room.id === openRoomId) ?? null;
   const admittingRoom =
@@ -83,13 +83,13 @@ export function DashboardPage() {
           <div className="p-4 flex flex-col min-h-0">
             <HospitalFloor
               rooms={roomsData}
-              selectedRoomId={selectedRoom.id}
+              selectedRoomId={selectedRoomId}
               onSelectRoom={setSelectedRoomId}
               onOpenRoom={handleOpenRoom}
             />
           </div>
 
-          <AssistantSidebar selectedRoom={selectedRoom} onWidthChange={setSidebarWidth} />
+          <AssistantSidebar selectedRoom={selectedRoom} onWidthChange={setSidebarWidth} onDeselectRoom={() => setSelectedRoomId(null)} />
         </main>
 
         {openRoom ? (
