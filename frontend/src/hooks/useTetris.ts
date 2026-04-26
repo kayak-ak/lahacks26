@@ -67,14 +67,14 @@ export const useTetris = () => {
       let queue = prevQueue;
       let nextType = newType;
       if (!nextType) {
-        if (queue.length === 0) queue = getNextPieces(5, []);
+        if (queue.length === 0) queue = getNextPieces(5, []); // init
         nextType = queue[0];
         queue = getNextPieces(5, queue.slice(1));
       }
       
       const tetro = TETROMINOES[nextType];
       const spawnX = Math.floor(10 / 2) - Math.floor(tetro.shape[0].length / 2);
-      const spawnY = nextType === 'I' ? -1 : 0;
+      const spawnY = nextType === 'I' ? -1 : 0; // I piece spawns one row higher due to 4x4 matrix
       
       setPlayer({
         pos: { x: spawnX, y: spawnY },
@@ -107,6 +107,7 @@ export const useTetris = () => {
     lastUpdateTimeRef.current = performance.now();
     fallAccumulatorRef.current = 0;
     
+    // reset inputs
     inputRef.current = {
       left: { down: false, das: 0, arr: 0 },
       right: { down: false, das: 0, arr: 0 },
@@ -127,6 +128,7 @@ export const useTetris = () => {
     });
   }, [gameOver]);
 
+
   const movePlayer = useCallback((dir: number) => {
     setPlayer((prev) => {
       if (!checkCollision(prev, board, { x: dir, y: 0 })) {
@@ -142,8 +144,11 @@ export const useTetris = () => {
 
   const drop = useCallback(() => {
     if (rows > (level + 1) * 10) {
-      setLevel((prev) => prev + 1);
-      setDropTime(Math.max(100, 1000 - (level * 50)));
+      setLevel((prev) => {
+        const newLevel = prev + 1;
+        setDropTime(Math.max(100, 1000 - (newLevel * 50)));
+        return newLevel;
+      });
     }
 
     setPlayer((prev) => {
@@ -152,6 +157,7 @@ export const useTetris = () => {
         lockTimerRef.current = 0;
         return { ...prev, pos: { x: prev.pos.x, y: prev.pos.y + 1 } };
       } else {
+        // Hit bottom, start lock delay
         if (!isLockingRef.current) {
           isLockingRef.current = true;
           lockTimerRef.current = 0;
@@ -166,6 +172,7 @@ export const useTetris = () => {
       if (!checkCollision(prev, board, { x: 0, y: 1 })) {
         isLockingRef.current = false;
         lockTimerRef.current = 0;
+        // score for soft drop (1 per cell)
         setScore(s => s + 1);
         return { ...prev, pos: { x: prev.pos.x, y: prev.pos.y + 1 } };
       }
@@ -181,6 +188,7 @@ export const useTetris = () => {
         newY += 1;
         dropDistance += 1;
       }
+      // score for hard drop (2 per cell)
       setScore(s => s + (dropDistance * 2));
       return { ...prev, pos: { x: prev.pos.x, y: newY }, collided: true };
     });
@@ -199,7 +207,7 @@ export const useTetris = () => {
         resetPlayer(next);
       }
       setCanHold(false);
-      return prev;
+      return prev; // resetPlayer will overwrite this asynchronously, but that's fine
     });
   }, [canHold, holdPiece, resetPlayer]);
 
@@ -228,21 +236,22 @@ export const useTetris = () => {
     if (player.pos.y <= 0) {
       setGameOver(true);
       setDropTime(null);
+      return;
     }
 
-    const newBoard = board.map((row) => [...row]);
+    const mergedBoard = board.map((row) => [...row]);
     player.tetromino.forEach((row, y) => {
       row.forEach((value, x) => {
         if (value !== 0) {
-          if (newBoard[y + player.pos.y] && newBoard[y + player.pos.y][x + player.pos.x]) {
-             newBoard[y + player.pos.y][x + player.pos.x] = [value, 'merged'];
+          if (mergedBoard[y + player.pos.y] && mergedBoard[y + player.pos.y][x + player.pos.x]) {
+             mergedBoard[y + player.pos.y][x + player.pos.x] = [value, 'merged'];
           }
         }
       });
     });
 
     let linesCleared = 0;
-    const finalBoard = newBoard.reduce((acc, row) => {
+    const clearedBoard = mergedBoard.reduce((acc, row) => {
       if (row.findIndex((cell) => cell[0] === 0) === -1) {
         linesCleared += 1;
         acc.unshift(new Array(10).fill([0, 'clear']));
@@ -250,18 +259,20 @@ export const useTetris = () => {
       }
       acc.push(row);
       return acc;
-    }, [] as any[][]);
+    }, [] as typeof mergedBoard);
 
     if (linesCleared > 0) {
+      setBoard(clearedBoard);
       setRows(prev => prev + linesCleared);
       const linePoints = [0, 100, 300, 500, 800];
       setScore(prev => prev + linePoints[linesCleared] * level);
+    } else {
+      setBoard(mergedBoard);
     }
 
-    setBoard(finalBoard);
     resetPlayer();
 
-  }, [player.collided, board, level, player.pos.x, player.pos.y, player.tetromino, resetPlayer]);
+  }, [player.collided, board, player.pos.x, player.pos.y, player.tetromino, resetPlayer, level]);
 
   const updateGame = useCallback((time: number) => {
     if (gameOver || isPaused) {
@@ -272,8 +283,10 @@ export const useTetris = () => {
     const deltaTime = time - lastUpdateTimeRef.current;
     lastUpdateTimeRef.current = time;
 
+    // Handle Input
     const inputs = inputRef.current;
     
+    // Left/Right DAS & ARR
     if (inputs.left.down && !inputs.right.down) {
       if (inputs.left.das === 0) {
         movePlayer(-1);
@@ -310,6 +323,7 @@ export const useTetris = () => {
       inputs.right.arr = 0;
     }
 
+    // Down Soft Drop
     if (inputs.down.down) {
       inputs.down.arr += deltaTime;
       while (inputs.down.arr >= SOFT_DROP_DELAY) {
@@ -320,6 +334,7 @@ export const useTetris = () => {
       inputs.down.arr = 0;
     }
 
+    // Gravity
     if (dropTime && !inputs.down.down) {
       fallAccumulatorRef.current += deltaTime;
       if (fallAccumulatorRef.current > dropTime) {
@@ -328,6 +343,7 @@ export const useTetris = () => {
       }
     }
 
+    // Lock Delay
     if (isLockingRef.current) {
       lockTimerRef.current += deltaTime;
       if (lockTimerRef.current >= LOCK_DELAY) {
@@ -348,6 +364,7 @@ export const useTetris = () => {
     };
   }, [updateGame, gameOver, isPaused]);
 
+  // Expose input handlers
   const handleKeyDown = useCallback((code: string) => {
     if (code === 'ArrowLeft') inputRef.current.left.down = true;
     if (code === 'ArrowRight') inputRef.current.right.down = true;

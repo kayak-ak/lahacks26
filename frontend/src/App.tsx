@@ -3,6 +3,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { VoicePage } from './pages/VoicePage';
 import { TetrisPage } from './pages/TetrisPage';
+import { LogsPage } from './pages/LogsPage';
+import { HandoffPage } from './pages/HandoffPage';
 
 function App() {
   const pathname = window.location.pathname;
@@ -33,6 +35,14 @@ function App() {
 
   if (pathname === '/inventory') {
     return <InventoryPage />;
+  }
+
+  if (pathname === '/logs') {
+    return <LogsPage />;
+  }
+
+  if (pathname === '/handoff') {
+    return <HandoffPage />;
   }
 
   return <DashboardPage />;

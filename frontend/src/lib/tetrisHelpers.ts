@@ -147,7 +147,7 @@ export const attemptRotation = (
   board: any[][],
   dir: number
 ): { success: boolean; newPos?: { x: number; y: number }; newTetromino?: number[][]; newRot?: number } => {
-  if (player.type === 'O') return { success: true, newPos: player.pos, newTetromino: player.tetromino, newRot: player.rot };
+  if (player.type === 'O') return { success: true, newPos: player.pos, newTetromino: player.tetromino, newRot: player.rot }; // O doesn't rotate
 
   const rotated = rotateMatrix(player.tetromino, dir);
   const fromState = player.rot;
@@ -155,7 +155,7 @@ export const attemptRotation = (
   const kickKey = `${fromState}_${toState}`;
   
   const kickTable = player.type === 'I' ? KICK_TABLE_I : KICK_TABLE_STANDARD;
-  const tests = kickTable[kickKey] || [[0, 0]];
+  const tests = kickTable[kickKey] || [[0, 0]]; // default to no kick if somehow not found
 
   for (let i = 0; i < tests.length; i++) {
     const [kickX, kickY] = tests[i];

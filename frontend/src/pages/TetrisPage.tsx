@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react';
 import { useEffect, useRef } from 'react';
 import { useTetris } from '../hooks/useTetris';
 import { TetrisBoard } from '../components/tetris/TetrisBoard';
@@ -31,8 +32,7 @@ export function TetrisPage() {
     gameRef.current?.focus();
   }, []);
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (gameOver && score === 0) return; 
+  const onKeyDown = (e: KeyboardEvent) => {
     if (gameOver) return;
 
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Shift"].includes(e.code)) {
@@ -46,11 +46,14 @@ export function TetrisPage() {
 
     if (isPaused) return;
 
+    // Handle repeatable movements via custom DAS/ARR loop
     if (['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.code)) {
+      // Don't re-trigger if key is held down natively
       if (!e.repeat) gameHandleKeyDown(e.code);
       return;
     }
 
+    // Handle one-off actions
     if (!e.repeat) {
       switch (e.code) {
         case 'ArrowUp':
@@ -71,7 +74,7 @@ export function TetrisPage() {
     }
   };
 
-  const onKeyUp = (e: React.KeyboardEvent) => {
+  const onKeyUp = (e: KeyboardEvent) => {
     if (['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.code)) {
       gameHandleKeyUp(e.code);
     }
@@ -80,7 +83,7 @@ export function TetrisPage() {
   const ghostY = getGhostPos(player, board);
 
   return (
-    <div className="flex absolute inset-0 z-50 h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 overflow-hidden">
+    <div className="flex h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 overflow-hidden">
       <div className="flex-1 rounded-2xl overflow-hidden border border-border/30 shadow-lg bg-white/80 backdrop-blur-sm h-full flex flex-col items-center justify-center relative">
         <div 
           className="bg-slate-900 rounded-3xl p-8 shadow-2xl flex flex-wrap justify-center gap-8 items-start relative outline-none focus:ring-4 focus:ring-blue-500/20 transition-all max-w-full overflow-y-auto"

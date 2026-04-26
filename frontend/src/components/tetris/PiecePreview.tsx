@@ -23,6 +23,9 @@ export function PiecePreview({ piece, title }: PiecePreviewProps) {
 
   const colorClass = colorValue !== 0 ? COLORS[colorValue] : 'bg-transparent';
 
+  // Normalize shape display (remove empty rows/cols if necessary to center, but standard 4x4 or 3x3 works okay if we center it)
+  // We'll just render it in a 4x4 grid and rely on flex center
+  
   return (
     <div className="flex flex-col items-center bg-slate-800 p-3 rounded-xl border-2 border-slate-700 shadow-lg min-w-[90px]">
       <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{title}</h3>
