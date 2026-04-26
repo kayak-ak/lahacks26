@@ -71,6 +71,8 @@ const EVENT_TYPES: { value: EventType; label: string; color: string }[] = [
   { value: 'critical', label: 'Critical', color: 'bg-red-50 text-red-600' },
 ];
 
+const CLINICAL_EVENT_TYPES = EVENT_TYPES.map((t) => t.value);
+
 function eventTypeColor(type: EventType): string {
   return EVENT_TYPES.find((t) => t.value === type)?.color ?? 'bg-slate-50 text-slate-600';
 }
@@ -313,6 +315,7 @@ export function HandoffPage() {
         const { data } = await supabase
           .from('events')
           .select('*')
+          .in('type', CLINICAL_EVENT_TYPES)
           .order('created_at', { ascending: false });
         if (data) {
           const mapped: HandoffEvent[] = data.map((row: Record<string, unknown>) => {
@@ -347,6 +350,7 @@ export function HandoffPage() {
           supabase
             .from('events')
             .select('*')
+            .in('type', CLINICAL_EVENT_TYPES)
             .order('created_at', { ascending: false })
             .then(({ data }) => {
               if (data) {
