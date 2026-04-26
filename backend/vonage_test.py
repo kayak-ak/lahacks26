@@ -4,8 +4,8 @@ from vonage_sms import SmsMessage
 # 1. Initialize with the new Vonage class
 client = Vonage(
     Auth(
-        api_key="de25cfff",
-        api_secret="2mRDYYMYwZjJHL7q",
+        api_key="[API_KEY]",
+        api_secret="API_SECRET",
     )
 )
 
