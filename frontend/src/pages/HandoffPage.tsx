@@ -71,6 +71,8 @@ const EVENT_TYPES: { value: EventType; label: string; color: string }[] = [
   { value: 'critical', label: 'Critical', color: 'bg-red-50 text-red-600' },
 ];
 
+const CLINICAL_EVENT_TYPES = EVENT_TYPES.map((t) => t.value);
+
 function eventTypeColor(type: EventType): string {
   return EVENT_TYPES.find((t) => t.value === type)?.color ?? 'bg-slate-50 text-slate-600';
 }
@@ -167,9 +169,12 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function localDateTimeValue(): string {
-  const d = new Date();
+function toLocalDateTimeValue(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function localDateTimeValue(): string {
+  return toLocalDateTimeValue(new Date());
 }
 
 function isNightShift(timeSlot: string): boolean {
@@ -210,6 +215,15 @@ function PlusIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function DocumentIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ClockIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -222,18 +236,27 @@ function ClockIcon(props: SVGProps<SVGSVGElement>) {
 export function HandoffPage() {
   const [handoffData, setHandoffData] = useState<HandoffData>(MOCK_HANDOFF);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [activeShiftTab, setActiveShiftTab] = useState<ShiftTab>('day');
   const [expandedShift, setExpandedShift] = useState<string | null>(null);
 
   // Event logging state
   const [loggedEvents, setLoggedEvents] = useState<HandoffEvent[]>([]);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [eventForm, setEventForm] = useState({
     patient_id: '',
     event_type: 'neutral' as EventType,
     occurred_at: localDateTimeValue(),
     notes: '',
+  });
+
+  // Report dialog state
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportForm, setReportForm] = useState({
+    patient_id: '',
+    from_date: '',
+    to_date: '',
   });
 
   useEffect(() => {
@@ -286,17 +309,118 @@ export function HandoffPage() {
     fetchHandoff();
   }, [selectedDate]);
 
+  // Fetch events from Supabase on mount & when date changes
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchEvents() {
+      try {
+        const { data } = await supabase
+          .from('events')
+          .select('*')
+          .in('type', CLINICAL_EVENT_TYPES)
+          .order('created_at', { ascending: false });
+        if (cancelled) return;
+        if (data) {
+          const mapped: HandoffEvent[] = data.map((row: Record<string, unknown>) => {
+            const payload = (row.payload ?? {}) as Record<string, unknown>;
+            return {
+              id: row.id as string,
+              patient_id: (payload.patient_id as string) ?? '',
+              patient_name: (payload.patient_name as string) ?? '',
+              event_type: (row.type as EventType) ?? 'neutral',
+              occurred_at: (payload.occurred_at as string) ?? (row.created_at as string),
+              notes: (payload.notes as string) ?? '',
+              logged_at: row.created_at as string,
+            };
+          });
+          setLoggedEvents(mapped.filter((e) => new Date(e.occurred_at).toLocaleDateString('en-CA') === selectedDate));
+        }
+      } catch {
+        // Supabase unavailable — keep local state
+      }
+    }
+    fetchEvents();
+    return () => { cancelled = true; };
+  }, [selectedDate]);
+
+  // Realtime subscription on events table
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel('events-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
+          supabase
+            .from('events')
+            .select('*')
+            .in('type', CLINICAL_EVENT_TYPES)
+            .order('created_at', { ascending: false })
+            .then(({ data }) => {
+              if (cancelled) return;
+              if (data) {
+                const mapped: HandoffEvent[] = data.map((row: Record<string, unknown>) => {
+                  const payload = (row.payload ?? {}) as Record<string, unknown>;
+                  return {
+                    id: row.id as string,
+                    patient_id: (payload.patient_id as string) ?? '',
+                    patient_name: (payload.patient_name as string) ?? '',
+                    event_type: (row.type as EventType) ?? 'neutral',
+                    occurred_at: (payload.occurred_at as string) ?? (row.created_at as string),
+                    notes: (payload.notes as string) ?? '',
+                    logged_at: row.created_at as string,
+                  };
+                });
+                setLoggedEvents(mapped.filter((e) => new Date(e.occurred_at).toLocaleDateString('en-CA') === selectedDate));
+              }
+            });
+        })
+        .subscribe();
+    } catch (err) {
+      console.warn('Failed to subscribe to events realtime:', err);
+    }
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [selectedDate]);
+
+  const [dbPatients, setDbPatients] = useState<{ id: string; name: string }[]>([]);
+
+  // Fetch all patients from Supabase
+  useEffect(() => {
+    async function fetchPatients() {
+      try {
+        const { data } = await supabase.from('patients').select('id, name').order('name');
+        if (data) {
+          setDbPatients(data);
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+    fetchPatients();
+  }, []);
+
   const allPatients = useMemo(() => {
-    const patients: { id: string; name: string }[] = [];
+    const patientsMap = new Map<string, { id: string; name: string }>();
+    
+    // Add patients from DB
+    for (const p of dbPatients) {
+      patientsMap.set(p.id, { id: p.id, name: p.name });
+    }
+
+    // Add patients from shifts (fallback)
     for (const shift of handoffData.shifts) {
       for (const pa of shift.patients) {
-        if (!patients.some((p) => p.id === pa.patient.id)) {
-          patients.push({ id: pa.patient.id, name: pa.patient.name });
+        if (!patientsMap.has(pa.patient.id)) {
+          patientsMap.set(pa.patient.id, { id: pa.patient.id, name: pa.patient.name });
         }
       }
     }
-    return patients;
-  }, [handoffData]);
+    return Array.from(patientsMap.values());
+  }, [handoffData, dbPatients]);
 
   const filteredShifts = useMemo(() => {
     return handoffData.shifts.filter((shift) => {
@@ -310,6 +434,7 @@ export function HandoffPage() {
   };
 
   const openEventDialog = () => {
+    setSubmitError(null);
     setEventForm({
       patient_id: allPatients[0]?.id ?? '',
       event_type: 'neutral',
@@ -319,26 +444,70 @@ export function HandoffPage() {
     setIsEventDialogOpen(true);
   };
 
-  const handleSubmitEvent = () => {
+  const handleSubmitEvent = async () => {
     const patient = allPatients.find((p) => p.id === eventForm.patient_id);
     if (!patient || !eventForm.notes.trim()) return;
 
-    const newEvent: HandoffEvent = {
-      id: `he-${Date.now()}`,
-      patient_id: eventForm.patient_id,
-      patient_name: patient.name,
-      event_type: eventForm.event_type,
-      occurred_at: new Date(eventForm.occurred_at).toISOString(),
-      notes: eventForm.notes.trim(),
-      logged_at: new Date().toISOString(),
-    };
+    try {
+      const { data, error } = await supabase.from('events').insert({
+        type: eventForm.event_type,
+        payload: {
+          patient_id: eventForm.patient_id,
+          patient_name: patient.name,
+          notes: eventForm.notes.trim(),
+          occurred_at: new Date(eventForm.occurred_at).toISOString(),
+        },
+      }).select().single();
 
-    setLoggedEvents((prev) => [newEvent, ...prev]);
+      if (error) throw error;
+
+      const newEvent: HandoffEvent = {
+        id: data.id,
+        patient_id: eventForm.patient_id,
+        patient_name: patient.name,
+        event_type: eventForm.event_type,
+        occurred_at: new Date(eventForm.occurred_at).toISOString(),
+        notes: eventForm.notes.trim(),
+        logged_at: data.created_at ?? new Date().toISOString(),
+      };
+
+      if (new Date(newEvent.occurred_at).toLocaleDateString('en-CA') === selectedDate) {
+        setLoggedEvents((prev) => [newEvent, ...prev]);
+      }
+    } catch (err: any) {
+      console.error('Failed to insert log into Supabase:', err);
+      // Supabase error typically has .message or .code
+      const errMsg = err?.message || err?.error_description || JSON.stringify(err) || 'Failed to submit log. Please check your connection and API key.';
+      setSubmitError(`Supabase Error: ${errMsg}`);
+      
+      // Still fallback to local-only if Supabase is unavailable so the UI reflects the attempt
+      const newEvent: HandoffEvent = {
+        id: `he-${Date.now()}`,
+        patient_id: eventForm.patient_id,
+        patient_name: patient.name,
+        event_type: eventForm.event_type,
+        occurred_at: new Date(eventForm.occurred_at).toISOString(),
+        notes: eventForm.notes.trim(),
+        logged_at: new Date().toISOString(),
+      };
+      if (new Date(newEvent.occurred_at).toLocaleDateString('en-CA') === selectedDate) {
+        setLoggedEvents((prev) => [newEvent, ...prev]);
+      }
+      // Return early so dialog doesn't close on error
+      return;
+    }
+
     setIsEventDialogOpen(false);
   };
 
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string) => {
     setLoggedEvents((prev) => prev.filter((e) => e.id !== eventId));
+    try {
+      const { error } = await supabase.from('events').delete().eq('id', eventId);
+      if (error) throw error;
+    } catch {
+      // Supabase delete failed — item already removed from local state
+    }
   };
 
   return (
@@ -382,7 +551,24 @@ export function HandoffPage() {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-auto min-h-[48px] px-4 rounded-full border-slate-200 shadow-sm"
             />
-            <div className="ml-auto">
+            <div className="ml-auto flex gap-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  const now = new Date();
+                  const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                  setReportForm({
+                    patient_id: allPatients[0]?.id ?? '',
+                    from_date: toLocalDateTimeValue(from),
+                    to_date: toLocalDateTimeValue(now),
+                  });
+                  setIsReportDialogOpen(true);
+                }}
+                className="min-h-[48px] px-6 text-sm font-semibold rounded-full shadow-sm gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
+              >
+                <DocumentIcon className="w-4 h-4" />
+                Generate Report
+              </Button>
               <Button
                 type="button"
                 onClick={openEventDialog}
@@ -578,6 +764,142 @@ export function HandoffPage() {
         </main>
       </div>
 
+      {/* Generate Report Dialog */}
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent className="sm:max-w-[480px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Generate PDF Report</DialogTitle>
+            <DialogDescription>
+              Select a patient and time frame for the report. An AI agent will generate the PDF.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-5 py-2">
+            {/* Patient select */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="report-patient" className="text-sm font-medium text-slate-700">
+                Patient
+              </label>
+              <select
+                id="report-patient"
+                value={reportForm.patient_id}
+                onChange={(e) => setReportForm((prev) => ({ ...prev, patient_id: e.target.value }))}
+                className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all"
+              >
+                <option value="">Select a patient…</option>
+                {allPatients.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Quick presets */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-slate-700">Quick Presets</label>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { label: 'Last 8 hours', hours: 8 },
+                  { label: 'Last 24 hours', hours: 24 },
+                  { label: 'Last 3 days', hours: 72 },
+                  { label: 'Last 7 days', hours: 168 },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const from = new Date(now.getTime() - preset.hours * 60 * 60 * 1000);
+                      setReportForm((prev) => ({
+                        ...prev,
+                        from_date: toLocalDateTimeValue(from),
+                        to_date: toLocalDateTimeValue(now),
+                      }));
+                    }}
+                    className="px-4 py-2 rounded-full text-sm font-semibold border border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* From date */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="report-from" className="text-sm font-medium text-slate-700">
+                From
+              </label>
+              <Input
+                id="report-from"
+                type="datetime-local"
+                value={reportForm.from_date}
+                onChange={(e) => setReportForm((prev) => ({ ...prev, from_date: e.target.value }))}
+                className="rounded-xl border-slate-200 shadow-sm"
+              />
+            </div>
+
+            {/* To date */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="report-to" className="text-sm font-medium text-slate-700">
+                To
+              </label>
+              <Input
+                id="report-to"
+                type="datetime-local"
+                value={reportForm.to_date}
+                onChange={(e) => setReportForm((prev) => ({ ...prev, to_date: e.target.value }))}
+                className="rounded-xl border-slate-200 shadow-sm"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsReportDialogOpen(false)}
+              className="rounded-full"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!reportForm.patient_id || !reportForm.from_date || !reportForm.to_date}
+              onClick={async () => {
+                const patient = allPatients.find((p) => p.id === reportForm.patient_id);
+                console.log('PDF report requested', {
+                  patient_id: reportForm.patient_id,
+                  patient_name: patient?.name,
+                  from: reportForm.from_date,
+                  to: reportForm.to_date,
+                });
+
+                try {
+                  const { error } = await supabase.from('events').insert({
+                    type: 'report_requested',
+                    payload: {
+                      patient_id: reportForm.patient_id,
+                      patient_name: patient?.name,
+                      from_date: new Date(reportForm.from_date).toISOString(),
+                      to_date: new Date(reportForm.to_date).toISOString(),
+                    },
+                  });
+                  if (error) throw error;
+                } catch {
+                  alert('Failed to request report — please try again later.');
+                  return;
+                }
+
+                alert('Report generation requested — AI agent will process this shortly');
+                setIsReportDialogOpen(false);
+              }}
+              className="rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
+            >
+              Generate PDF Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Log Event Dialog */}
       <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
         <DialogContent className="sm:max-w-[480px] rounded-2xl">
@@ -589,6 +911,13 @@ export function HandoffPage() {
           </DialogHeader>
 
           <div className="flex flex-col gap-5 py-2">
+            {submitError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium flex items-start gap-2">
+                <AlertTriangleIcon className="w-5 h-5 shrink-0 mt-0.5" />
+                <span className="break-words">{submitError}</span>
+              </div>
+            )}
+            
             {/* Patient select */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="event-patient" className="text-sm font-medium text-slate-700">
