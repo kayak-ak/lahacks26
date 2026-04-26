@@ -311,6 +311,7 @@ export function HandoffPage() {
 
   // Fetch events from Supabase on mount & when date changes
   useEffect(() => {
+    let cancelled = false;
     async function fetchEvents() {
       try {
         const { data } = await supabase
@@ -318,6 +319,7 @@ export function HandoffPage() {
           .select('*')
           .in('type', CLINICAL_EVENT_TYPES)
           .order('created_at', { ascending: false });
+        if (cancelled) return;
         if (data) {
           const mapped: HandoffEvent[] = data.map((row: Record<string, unknown>) => {
             const payload = (row.payload ?? {}) as Record<string, unknown>;
@@ -338,22 +340,24 @@ export function HandoffPage() {
       }
     }
     fetchEvents();
+    return () => { cancelled = true; };
   }, [selectedDate]);
 
   // Realtime subscription on events table
   useEffect(() => {
+    let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
     try {
       channel = supabase
         .channel('events-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
-          // Re-fetch events on any change
           supabase
             .from('events')
             .select('*')
             .in('type', CLINICAL_EVENT_TYPES)
             .order('created_at', { ascending: false })
             .then(({ data }) => {
+              if (cancelled) return;
               if (data) {
                 const mapped: HandoffEvent[] = data.map((row: Record<string, unknown>) => {
                   const payload = (row.payload ?? {}) as Record<string, unknown>;
@@ -377,6 +381,7 @@ export function HandoffPage() {
     }
 
     return () => {
+      cancelled = true;
       if (channel) supabase.removeChannel(channel);
     };
   }, [selectedDate]);
