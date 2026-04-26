@@ -242,6 +242,7 @@ export function HandoffPage() {
 
   // Event logging state
   const [loggedEvents, setLoggedEvents] = useState<HandoffEvent[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [eventForm, setEventForm] = useState({
@@ -446,8 +447,9 @@ export function HandoffPage() {
 
   const handleSubmitEvent = async () => {
     const patient = allPatients.find((p) => p.id === eventForm.patient_id);
-    if (!patient || !eventForm.notes.trim()) return;
+    if (!patient || !eventForm.notes.trim() || isSubmitting) return;
 
+    setIsSubmitting(true);
     try {
       const { data, error } = await supabase.from('events').insert({
         type: eventForm.event_type,
@@ -476,11 +478,9 @@ export function HandoffPage() {
       }
     } catch (err: any) {
       console.error('Failed to insert log into Supabase:', err);
-      // Supabase error typically has .message or .code
       const errMsg = err?.message || err?.error_description || JSON.stringify(err) || 'Failed to submit log. Please check your connection and API key.';
       setSubmitError(`Supabase Error: ${errMsg}`);
       
-      // Still fallback to local-only if Supabase is unavailable so the UI reflects the attempt
       const newEvent: HandoffEvent = {
         id: `he-${Date.now()}`,
         patient_id: eventForm.patient_id,
@@ -493,8 +493,9 @@ export function HandoffPage() {
       if (new Date(newEvent.occurred_at).toLocaleDateString('en-CA') === selectedDate) {
         setLoggedEvents((prev) => [newEvent, ...prev]);
       }
-      // Return early so dialog doesn't close on error
       return;
+    } finally {
+      setIsSubmitting(false);
     }
 
     setIsEventDialogOpen(false);
@@ -1000,7 +1001,7 @@ export function HandoffPage() {
             <Button
               type="button"
               onClick={handleSubmitEvent}
-              disabled={!eventForm.patient_id || !eventForm.notes.trim()}
+              disabled={isSubmitting || !eventForm.patient_id || !eventForm.notes.trim()}
               className="rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
             >
               Log Event
