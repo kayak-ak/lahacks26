@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,7 +17,8 @@ type SidebarProps = {
   activeItem?: 'dashboard' | 'voice' | 'inventory' | 'logs' | 'handoff';
 };
 
-export function Sidebar({ activeItem = 'dashboard' }: SidebarProps) {
+export function Sidebar() {
+  const { pathname } = useLocation();
   const [isOpen, setIsOpen] = useState(() => {
     const saved = localStorage.getItem('sidebar-open');
     return saved !== null ? saved === 'true' : true;
@@ -105,24 +107,24 @@ export function Sidebar({ activeItem = 'dashboard' }: SidebarProps) {
       </div>
 
       <nav className="flex flex-col gap-2 mt-4" aria-label="Primary">
-        {navItems.map(({ label, icon: Icon, href, key }) => (
+        {navItems.map(({ label, icon: Icon, href }) => (
           <Tooltip key={label}>
             <TooltipTrigger asChild>
               <Button
-                variant={activeItem === key ? 'secondary' : 'ghost'}
+                variant={pathname === href ? 'secondary' : 'ghost'}
                 asChild
                 className={cn(
                   'gap-3 py-3 rounded-xl text-[0.95rem] font-medium h-auto justify-start overflow-hidden',
-                  activeItem === key
+                  pathname === href
                     ? 'bg-blue-50 text-blue-700 shadow-sm hover:bg-blue-100'
                     : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50/50',
                   !isOpen && 'justify-center px-0'
                 )}
               >
-                <a href={href} aria-current={activeItem === key ? 'page' : undefined}>
+                <Link to={href} aria-current={pathname === href ? 'page' : undefined}>
                   <Icon className="w-5 h-5 shrink-0" />
                   {isOpen && <span>{label}</span>}
-                </a>
+                </Link>
               </Button>
             </TooltipTrigger>
             {!isOpen && (

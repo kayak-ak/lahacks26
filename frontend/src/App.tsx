@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ConversationProvider } from '@elevenlabs/react';
 import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
-import { VoicePage } from './pages/VoicePage';
 import { TetrisPage } from './pages/TetrisPage';
+import { VoiceBubble } from './components/VoiceBubble';
 import { LogsPage } from './pages/LogsPage';
 import { HandoffPage } from './pages/HandoffPage';
 
 function App() {
-  const pathname = window.location.pathname;
   const [showTetris, setShowTetris] = useState(false);
 
   useEffect(() => {
@@ -25,27 +26,16 @@ function App() {
     return <TetrisPage />;
   }
 
-  if (pathname === '/dashboard' || pathname === '/') {
-    return <DashboardPage />;
-  }
-
-  if (pathname === '/voice') {
-    return <VoicePage />;
-  }
-
-  if (pathname === '/inventory') {
-    return <InventoryPage />;
-  }
-
-  if (pathname === '/logs') {
-    return <LogsPage />;
-  }
-
-  if (pathname === '/handoff') {
-    return <HandoffPage />;
-  }
-
-  return <DashboardPage />;
+  return (
+    <ConversationProvider>
+      <Routes>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+      <VoiceBubble />
+    </ConversationProvider>
+  );
 }
 
 export default App;

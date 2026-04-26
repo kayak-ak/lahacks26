@@ -46,8 +46,7 @@ export function AssistantSidebar({
           <SparkleIcon className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="m-0 text-[1.75rem] leading-[1.1] text-slate-900">AI Assistant</h2>
-          <p className="mt-1 mb-0 text-slate-500 text-[0.95rem]">Clinical Coordination</p>
+          <h2 className="m-0 text-[1.75rem] leading-[1.1] text-slate-900">Siren</h2>
         </div>
       </div>
 
