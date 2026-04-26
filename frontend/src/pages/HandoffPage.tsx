@@ -243,6 +243,7 @@ export function HandoffPage() {
   // Event logging state
   const [loggedEvents, setLoggedEvents] = useState<HandoffEvent[]>([]);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [eventForm, setEventForm] = useState({
     patient_id: '',
     event_type: 'neutral' as EventType,
@@ -380,17 +381,41 @@ export function HandoffPage() {
     };
   }, [selectedDate]);
 
+  const [dbPatients, setDbPatients] = useState<{ id: string; name: string }[]>([]);
+
+  // Fetch all patients from Supabase
+  useEffect(() => {
+    async function fetchPatients() {
+      try {
+        const { data } = await supabase.from('patients').select('id, name').order('name');
+        if (data) {
+          setDbPatients(data);
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+    fetchPatients();
+  }, []);
+
   const allPatients = useMemo(() => {
-    const patients: { id: string; name: string }[] = [];
+    const patientsMap = new Map<string, { id: string; name: string }>();
+    
+    // Add patients from DB
+    for (const p of dbPatients) {
+      patientsMap.set(p.id, { id: p.id, name: p.name });
+    }
+
+    // Add patients from shifts (fallback)
     for (const shift of handoffData.shifts) {
       for (const pa of shift.patients) {
-        if (!patients.some((p) => p.id === pa.patient.id)) {
-          patients.push({ id: pa.patient.id, name: pa.patient.name });
+        if (!patientsMap.has(pa.patient.id)) {
+          patientsMap.set(pa.patient.id, { id: pa.patient.id, name: pa.patient.name });
         }
       }
     }
-    return patients;
-  }, [handoffData]);
+    return Array.from(patientsMap.values());
+  }, [handoffData, dbPatients]);
 
   const filteredShifts = useMemo(() => {
     return handoffData.shifts.filter((shift) => {
@@ -404,6 +429,7 @@ export function HandoffPage() {
   };
 
   const openEventDialog = () => {
+    setSubmitError(null);
     setEventForm({
       patient_id: allPatients[0]?.id ?? '',
       event_type: 'neutral',
@@ -443,8 +469,13 @@ export function HandoffPage() {
       if (new Date(newEvent.occurred_at).toLocaleDateString('en-CA') === selectedDate) {
         setLoggedEvents((prev) => [newEvent, ...prev]);
       }
-    } catch {
-      // Fallback to local-only if Supabase is unavailable
+    } catch (err: any) {
+      console.error('Failed to insert log into Supabase:', err);
+      // Supabase error typically has .message or .code
+      const errMsg = err?.message || err?.error_description || JSON.stringify(err) || 'Failed to submit log. Please check your connection and API key.';
+      setSubmitError(`Supabase Error: ${errMsg}`);
+      
+      // Still fallback to local-only if Supabase is unavailable so the UI reflects the attempt
       const newEvent: HandoffEvent = {
         id: `he-${Date.now()}`,
         patient_id: eventForm.patient_id,
@@ -457,6 +488,8 @@ export function HandoffPage() {
       if (new Date(newEvent.occurred_at).toLocaleDateString('en-CA') === selectedDate) {
         setLoggedEvents((prev) => [newEvent, ...prev]);
       }
+      // Return early so dialog doesn't close on error
+      return;
     }
 
     setIsEventDialogOpen(false);
@@ -873,6 +906,13 @@ export function HandoffPage() {
           </DialogHeader>
 
           <div className="flex flex-col gap-5 py-2">
+            {submitError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium flex items-start gap-2">
+                <AlertTriangleIcon className="w-5 h-5 shrink-0 mt-0.5" />
+                <span className="break-words">{submitError}</span>
+              </div>
+            )}
+            
             {/* Patient select */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="event-patient" className="text-sm font-medium text-slate-700">
