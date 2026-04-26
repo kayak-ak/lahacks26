@@ -894,8 +894,12 @@ export function HandoffPage() {
                   });
 
                   if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.error || 'Failed to generate report');
+                    let errorMsg = `Server error (${res.status})`;
+                    try {
+                      const err = await res.json();
+                      errorMsg = err.error || errorMsg;
+                    } catch { /* response wasn't JSON */ }
+                    throw new Error(errorMsg);
                   }
 
                   // Download the PDF

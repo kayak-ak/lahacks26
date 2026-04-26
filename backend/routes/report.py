@@ -69,19 +69,13 @@ def generate_report():
         events_result = (
             supabase.table("events")
             .select("*")
+            .filter("payload->>patient_id", "eq", patient_id)
             .gte("created_at", from_date)
             .lte("created_at", to_date)
             .order("created_at", desc=False)
             .execute()
         )
-        # Filter to events that reference this patient in their payload
-        patient_events = []
-        for evt in (events_result.data or []):
-            payload = evt.get("payload") or {}
-            if isinstance(payload, str):
-                payload = json.loads(payload)
-            if payload.get("patient_id") == patient_id:
-                patient_events.append(evt)
+        patient_events = events_result.data or []
 
         # --- 4. Fetch latest vitals ---
         vitals_result = (
