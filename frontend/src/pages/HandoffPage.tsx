@@ -870,7 +870,8 @@ export function HandoffPage() {
                 });
 
                 try {
-                  const { error } = await supabase.from('events').insert({
+                  // Audit trail event
+                  await supabase.from('events').insert({
                     type: 'report_requested',
                     payload: {
                       patient_id: reportForm.patient_id,
@@ -879,13 +880,40 @@ export function HandoffPage() {
                       to_date: new Date(reportForm.to_date).toISOString(),
                     },
                   });
-                  if (error) throw error;
-                } catch {
-                  alert('Failed to request report — please try again later.');
+
+                  // Call backend to generate filled PDF
+                  const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5001';
+                  const res = await fetch(`${API_BASE}/report/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      patient_id: reportForm.patient_id,
+                      from_date: new Date(reportForm.from_date).toISOString(),
+                      to_date: new Date(reportForm.to_date).toISOString(),
+                    }),
+                  });
+
+                  if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to generate report');
+                  }
+
+                  // Download the PDF
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `patient_report_${patient?.name?.replace(/\s+/g, '_')}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch (err: unknown) {
+                  const message = err instanceof Error ? err.message : 'please try again later.';
+                  alert(`Failed to generate report: ${message}`);
                   return;
                 }
 
-                alert('Report generation requested — AI agent will process this shortly');
                 setIsReportDialogOpen(false);
               }}
               className="rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"

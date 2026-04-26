@@ -6,6 +6,7 @@ from routes.rooms import rooms_bp
 from routes.shifts import shifts_bp
 from routes.events import events_bp
 from routes.handoff import handoff_bp
+from routes.report import report_bp
 
 
 def create_app():
@@ -24,6 +25,7 @@ def create_app():
     app.register_blueprint(shifts_bp)
     app.register_blueprint(events_bp)
     app.register_blueprint(handoff_bp)
+    app.register_blueprint(report_bp)
 
     return app
 
