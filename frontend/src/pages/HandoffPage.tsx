@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -257,6 +258,7 @@ export function HandoffPage() {
     from_date: '',
     to_date: '',
   });
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchHandoff() {
@@ -559,6 +561,7 @@ export function HandoffPage() {
                     from_date: toLocalDateTimeValue(from),
                     to_date: toLocalDateTimeValue(now),
                   });
+                  setSelectedPreset('Last 24 hours');
                   setIsReportDialogOpen(true);
                 }}
                 className="min-h-[48px] px-6 text-sm font-semibold rounded-full shadow-sm gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
@@ -810,8 +813,15 @@ export function HandoffPage() {
                         from_date: toLocalDateTimeValue(from),
                         to_date: toLocalDateTimeValue(now),
                       }));
+                      setSelectedPreset(preset.label);
+                      toast.success('Date range updated', { description: preset.label });
                     }}
-                    className="px-4 py-2 rounded-full text-sm font-semibold border border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+                    className={cn(
+                      'px-4 py-2 rounded-full text-sm font-semibold border transition-all',
+                      selectedPreset === preset.label
+                        ? 'bg-emerald-50 border-emerald-400 text-emerald-600 ring-2 ring-emerald-200'
+                        : 'border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50'
+                    )}
                   >
                     {preset.label}
                   </button>
@@ -828,7 +838,10 @@ export function HandoffPage() {
                 id="report-from"
                 type="datetime-local"
                 value={reportForm.from_date}
-                onChange={(e) => setReportForm((prev) => ({ ...prev, from_date: e.target.value }))}
+                onChange={(e) => {
+                  setReportForm((prev) => ({ ...prev, from_date: e.target.value }));
+                  setSelectedPreset(null);
+                }}
                 className="rounded-xl border-slate-200 shadow-sm"
               />
             </div>
@@ -842,7 +855,10 @@ export function HandoffPage() {
                 id="report-to"
                 type="datetime-local"
                 value={reportForm.to_date}
-                onChange={(e) => setReportForm((prev) => ({ ...prev, to_date: e.target.value }))}
+                onChange={(e) => {
+                  setReportForm((prev) => ({ ...prev, to_date: e.target.value }));
+                  setSelectedPreset(null);
+                }}
                 className="rounded-xl border-slate-200 shadow-sm"
               />
             </div>
@@ -862,6 +878,7 @@ export function HandoffPage() {
               disabled={!reportForm.patient_id || !reportForm.from_date || !reportForm.to_date}
               onClick={async () => {
                 const patient = allPatients.find((p) => p.id === reportForm.patient_id);
+                toast.loading('Generating report...', { id: 'report-gen', description: `For ${patient?.name ?? 'patient'}` });
                 console.log('PDF report requested', {
                   patient_id: reportForm.patient_id,
                   patient_name: patient?.name,
@@ -913,10 +930,11 @@ export function HandoffPage() {
                   a.click();
                   document.body.removeChild(a);
                   URL.revokeObjectURL(url);
-                } catch (err: unknown) {
-                  const message = err instanceof Error ? err.message : 'please try again later.';
-                  alert(`Failed to generate report: ${message}`);
-                  return;
+                  toast.success('Report generated', { id: 'report-gen', description: `PDF downloaded for ${patient?.name ?? 'patient'}` });
+                 } catch (err: unknown) {
+                   const message = err instanceof Error ? err.message : 'please try again later.';
+                   toast.error('Report generation failed', { id: 'report-gen', description: message });
+                   return;
                 }
 
                 setIsReportDialogOpen(false);
