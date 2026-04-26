@@ -12,6 +12,7 @@ export function DashboardPage() {
   const [selectedRoomId, setSelectedRoomId] = useState('Room 102');
   const [openRoomId, setOpenRoomId] = useState<string | null>(null);
   const [admittingRoomId, setAdmittingRoomId] = useState<string | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(300);
 
   const selectedRoom =
     roomsData.find((room) => room.id === selectedRoomId) ?? roomsData[0];
@@ -78,7 +79,7 @@ export function DashboardPage() {
     <div className="flex h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 gap-3 overflow-hidden">
       <Sidebar />
       <div className="flex-1 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm h-full flex flex-col min-w-0">
-        <main className="grid grid-cols-[minmax(0,1fr)_300px] flex-1 min-h-0">
+        <main className="grid flex-1 min-h-0" style={{ gridTemplateColumns: `minmax(0,1fr) ${sidebarWidth}px` }}>
           <div className="p-4 flex flex-col min-h-0">
             <HospitalFloor
               rooms={roomsData}
@@ -88,7 +89,7 @@ export function DashboardPage() {
             />
           </div>
 
-          <AssistantSidebar selectedRoom={selectedRoom} />
+          <AssistantSidebar selectedRoom={selectedRoom} onWidthChange={setSidebarWidth} />
         </main>
 
         {openRoom ? (
