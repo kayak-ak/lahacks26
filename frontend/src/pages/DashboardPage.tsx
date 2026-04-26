@@ -77,7 +77,7 @@ export function DashboardPage() {
   return (
     <div className="flex h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 gap-3 overflow-hidden">
       <Sidebar />
-      <div className="flex-1 rounded-2xl overflow-hidden border border-border/30 shadow-lg bg-white/80 backdrop-blur-sm h-full flex flex-col min-w-0">
+      <div className="flex-1 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm h-full flex flex-col min-w-0">
         <main className="grid grid-cols-[minmax(0,1fr)_300px] flex-1 min-h-0">
           <div className="p-4 flex flex-col min-h-0">
             <HospitalFloor
