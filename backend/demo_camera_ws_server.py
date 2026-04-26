@@ -1,6 +1,5 @@
 import asyncio
 import os
-import time
 
 import cv2
 import mediapipe as mp
@@ -82,6 +81,7 @@ async def capture_loop():
             success, img = cap.read()
             if not success:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                await asyncio.sleep(0.1)
                 continue
 
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
