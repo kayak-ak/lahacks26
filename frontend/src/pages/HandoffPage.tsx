@@ -440,7 +440,9 @@ export function HandoffPage() {
         logged_at: data.created_at ?? new Date().toISOString(),
       };
 
-      setLoggedEvents((prev) => [newEvent, ...prev]);
+      if (new Date(newEvent.occurred_at).toLocaleDateString('en-CA') === selectedDate) {
+        setLoggedEvents((prev) => [newEvent, ...prev]);
+      }
     } catch {
       // Fallback to local-only if Supabase is unavailable
       const newEvent: HandoffEvent = {
@@ -452,7 +454,9 @@ export function HandoffPage() {
         notes: eventForm.notes.trim(),
         logged_at: new Date().toISOString(),
       };
-      setLoggedEvents((prev) => [newEvent, ...prev]);
+      if (new Date(newEvent.occurred_at).toLocaleDateString('en-CA') === selectedDate) {
+        setLoggedEvents((prev) => [newEvent, ...prev]);
+      }
     }
 
     setIsEventDialogOpen(false);
