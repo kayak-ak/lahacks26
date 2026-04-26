@@ -871,7 +871,7 @@ export function HandoffPage() {
 
                 try {
                   // Audit trail event
-                  await supabase.from('events').insert({
+                  const { error } = await supabase.from('events').insert({
                     type: 'report_requested',
                     payload: {
                       patient_id: reportForm.patient_id,
@@ -880,6 +880,7 @@ export function HandoffPage() {
                       to_date: new Date(reportForm.to_date).toISOString(),
                     },
                   });
+                  if (error) throw error;
 
                   // Call backend to generate filled PDF
                   const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5001';
