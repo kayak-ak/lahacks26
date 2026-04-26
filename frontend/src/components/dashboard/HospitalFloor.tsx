@@ -35,7 +35,7 @@ const roomPositions: Record<
   'Exam Room 3': { left: 110, top: 600, width: 155, height: 112 },
   'Exam Room 4': { left: 110, top: 712, width: 155, height: 118 },
   // Bottom emergency/triage
-  'Triage Room': { left: 535, top: 730, width: 190, height: 155 },
+  'Triage Room': { left: 535, top: 730, width: 190, height: 100 },
   'Emergency Room': { left: 725, top: 730, width: 220, height: 155 },
 };
 
