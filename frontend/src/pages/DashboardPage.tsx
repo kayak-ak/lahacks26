@@ -1,21 +1,18 @@
 import { useState } from 'react';
-import { AssistantSidebar } from '../components/dashboard/AssistantSidebar';
-import { Sidebar } from '../components/dashboard/Sidebar';
 import { HospitalFloor } from '../components/dashboard/HospitalFloor';
 import { RoomDetailModal } from '../components/dashboard/RoomDetailModal';
 import { AdmitPatientModal } from '../components/dashboard/AdmitPatientModal';
 import { useRoomData } from '../hooks/useRoomData';
+import { useAssistantStore } from '../store/assistantStore';
 import type { Room } from '../components/dashboard/data';
 
 export function DashboardPage() {
   const { rooms: roomsData, setRooms: setRoomsData } = useRoomData();
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const selectedRoomId = useAssistantStore((s) => s.selectedRoom?.id) ?? null;
+  const setSelectedRoom = useAssistantStore((s) => s.setSelectedRoom);
   const [openRoomId, setOpenRoomId] = useState<string | null>(null);
   const [admittingRoomId, setAdmittingRoomId] = useState<string | null>(null);
-  const [sidebarWidth, setSidebarWidth] = useState(300);
 
-  const selectedRoom =
-    roomsData.find((room) => room.id === selectedRoomId) ?? null;
   const openRoom =
     roomsData.find((room) => room.id === openRoomId) ?? null;
   const admittingRoom =
@@ -76,38 +73,34 @@ export function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 gap-3 overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm h-full flex flex-col min-w-0">
-        <main className="grid flex-1 min-h-0" style={{ gridTemplateColumns: `minmax(0,1fr) ${sidebarWidth}px` }}>
-          <div className="p-4 flex flex-col min-h-0">
-            <HospitalFloor
-              rooms={roomsData}
-              selectedRoomId={selectedRoomId}
-              onSelectRoom={setSelectedRoomId}
-              onOpenRoom={handleOpenRoom}
-            />
-          </div>
-
-          <AssistantSidebar selectedRoom={selectedRoom} onWidthChange={setSidebarWidth} onDeselectRoom={() => setSelectedRoomId(null)} />
-        </main>
-
-        {openRoom ? (
-          <RoomDetailModal 
-            room={openRoom} 
-            onClose={() => setOpenRoomId(null)} 
-            onSimulateVacancy={handleSimulateVacancy} 
-          />
-        ) : null}
-
-        {admittingRoom ? (
-          <AdmitPatientModal 
-            room={admittingRoom} 
-            onClose={() => setAdmittingRoomId(null)} 
-            onAdmit={handleAdmitPatient} 
-          />
-        ) : null}
+    <>
+      <div className="p-4 flex flex-col min-h-0">
+        <HospitalFloor
+          rooms={roomsData}
+          selectedRoomId={selectedRoomId}
+          onSelectRoom={(id) => {
+            const room = roomsData.find((r) => r.id === id) ?? null;
+            setSelectedRoom(room);
+          }}
+          onOpenRoom={handleOpenRoom}
+        />
       </div>
-    </div>
+
+      {openRoom ? (
+        <RoomDetailModal 
+          room={openRoom} 
+          onClose={() => setOpenRoomId(null)} 
+          onSimulateVacancy={handleSimulateVacancy} 
+        />
+      ) : null}
+
+      {admittingRoom ? (
+        <AdmitPatientModal 
+          room={admittingRoom} 
+          onClose={() => setAdmittingRoomId(null)} 
+          onAdmit={handleAdmitPatient} 
+        />
+      ) : null}
+    </>
   );
 }
