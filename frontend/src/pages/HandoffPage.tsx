@@ -460,7 +460,8 @@ export function HandoffPage() {
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
-      await supabase.from('events').delete().eq('id', eventId);
+      const { error } = await supabase.from('events').delete().eq('id', eventId);
+      if (error) throw error;
     } catch {
       // Continue with local removal even if Supabase delete fails
     }
