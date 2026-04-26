@@ -3,7 +3,7 @@ import { relations } from "drizzle-orm";
 import { rooms } from "./rooms";
 import { familyContacts } from "./family-contacts";
 import { vitals } from "./vitals";
-
+import { emails } from "./emails";
 export const patients = pgTable("patients", {
   id: uuid("id").defaultRandom().primaryKey(),
   roomId: uuid("room_id").references(() => rooms.id),
@@ -22,4 +22,5 @@ export const patientsRelations = relations(patients, ({ one, many }) => ({
   }),
   familyContacts: many(familyContacts),
   vitals: many(vitals),
+  emails: many(emails),
 }));
