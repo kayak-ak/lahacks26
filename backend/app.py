@@ -10,7 +10,16 @@ from routes.handoff import handoff_bp
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    CORS(
+        app,
+        resources={
+            r"/*": { 
+                "origins": "*",
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"],
+            }
+        },
+    )
 
     app.register_blueprint(sms_bp)
     app.register_blueprint(agent_bp)

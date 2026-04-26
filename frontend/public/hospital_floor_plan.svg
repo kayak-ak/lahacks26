@@ -113,7 +113,7 @@
   <text class="label" x="430" y="650"><tspan x="430" dy="0">PHYSICAL</tspan><tspan x="430" dy="24">THERAPY</tspan></text>
   <text class="label" x="430" y="765"><tspan x="430" dy="0">SUPPLY</tspan><tspan x="430" dy="24">CLOSET</tspan></text>
   <text class="label" x="708" y="530"><tspan x="708" dy="0">NURSES’</tspan><tspan x="708" dy="24">STATION</tspan></text>
-  <text class="label" x="630" y="800"><tspan x="630" dy="0">TRIAGE</tspan><tspan x="630" dy="24">ROOM</tspan></text>
+  <text class="label" x="630" y="782"><tspan x="630" dy="0">TRIAGE</tspan><tspan x="630" dy="24">ROOM</tspan></text>
   <text class="label" x="835" y="805"><tspan x="835" dy="0">EMERGENCY</tspan><tspan x="835" dy="24">ROOM</tspan></text>
   <text class="label" x="870" y="495">🚻</text>
   <text class="label" x="870" y="525">RESTROOM</text>

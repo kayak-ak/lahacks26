@@ -9,3 +9,4 @@ export { alerts, alertsRelations } from "./alerts";
 export { events } from "./events";
 export { familyContacts, familyContactsRelations } from "./family-contacts";
 export { nurseStatuses, nurseStatusesRelations } from "./nurse-statuses";
+export { vitals, vitalsRelations } from "./vitals";
