@@ -156,9 +156,11 @@ def accept_handoff():
 
     try:
         result = supabase.table("shifts").update({"status": "handed_off"}).eq("id", shift_id).execute()
+        if not result.data:
+            return jsonify({"error": "Shift not found"}), 404
         from agent.tools.supabase_tools import log_event
         log_event("handoff_accepted", {"shift_id": shift_id, "nurse_id": nurse_id})
-        return jsonify({"status": "accepted", "shift": result.data[0] if result.data else {}})
+        return jsonify({"status": "accepted", "shift": result.data[0]})
     except Exception:
         logger.exception("Failed to accept handoff (shift_id=%s, nurse_id=%s)", shift_id, nurse_id)
         # TODO: Remove mock response once Supabase is reliably connected
