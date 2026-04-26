@@ -228,6 +228,7 @@ export function HandoffPage() {
 
   // Event logging state
   const [loggedEvents, setLoggedEvents] = useState<HandoffEvent[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [eventForm, setEventForm] = useState({
     patient_id: '',
@@ -346,39 +347,44 @@ export function HandoffPage() {
 
   const handleSubmitEvent = async () => {
     const patient = allPatients.find((p) => p.id === eventForm.patient_id);
-    if (!patient || !eventForm.notes.trim()) return;
+    if (!patient || !eventForm.notes.trim() || isSubmitting) return;
 
-    const { data, error } = await supabase
-      .from('events')
-      .insert({
-        type: eventForm.event_type,
-        payload: {
-          patient_id: eventForm.patient_id,
-          patient_name: patient.name,
-          notes: eventForm.notes.trim(),
-          occurred_at: new Date(eventForm.occurred_at).toISOString(),
-        },
-      })
-      .select()
-      .single();
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert({
+          type: eventForm.event_type,
+          payload: {
+            patient_id: eventForm.patient_id,
+            patient_name: patient.name,
+            notes: eventForm.notes.trim(),
+            occurred_at: new Date(eventForm.occurred_at).toISOString(),
+          },
+        })
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Failed to insert event:', error);
-      return;
+      if (error) {
+        console.error('Failed to insert event:', error);
+        return;
+      }
+
+      const newEvent: HandoffEvent = {
+        id: data.id,
+        patient_id: eventForm.patient_id,
+        patient_name: patient.name,
+        event_type: eventForm.event_type,
+        occurred_at: new Date(eventForm.occurred_at).toISOString(),
+        notes: eventForm.notes.trim(),
+        logged_at: data.created_at,
+      };
+
+      setLoggedEvents((prev) => [newEvent, ...prev]);
+      setIsEventDialogOpen(false);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const newEvent: HandoffEvent = {
-      id: data.id,
-      patient_id: eventForm.patient_id,
-      patient_name: patient.name,
-      event_type: eventForm.event_type,
-      occurred_at: new Date(eventForm.occurred_at).toISOString(),
-      notes: eventForm.notes.trim(),
-      logged_at: data.created_at,
-    };
-
-    setLoggedEvents((prev) => [newEvent, ...prev]);
-    setIsEventDialogOpen(false);
   };
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -720,7 +726,7 @@ export function HandoffPage() {
             <Button
               type="button"
               onClick={handleSubmitEvent}
-              disabled={!eventForm.patient_id || !eventForm.notes.trim()}
+              disabled={isSubmitting || !eventForm.patient_id || !eventForm.notes.trim()}
               className="rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
             >
               Log Event
