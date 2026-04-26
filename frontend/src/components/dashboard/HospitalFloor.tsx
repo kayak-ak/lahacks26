@@ -84,10 +84,10 @@ export function HospitalFloor({
   onOpenRoom,
 }: HospitalFloorProps) {
   return (
-    <Card className="flex flex-col gap-4 h-full min-h-0 p-5 rounded-3xl border-border/40 shadow-xl bg-white/50 backdrop-blur-sm">
+    <Card className="flex flex-col gap-4 h-full min-h-0 p-5 rounded-2xl border-transparent shadow-none bg-transparent">
       <div className="px-2">
         <h1 className="m-0 text-[clamp(1.6rem,2.3vw,2.4rem)] leading-[1.15] tracking-[-0.03em] text-slate-900">
-          Hospital Digital Twin
+          Hospital Layout
         </h1>
         <p className="mt-2 mb-0 text-slate-500 text-[1rem]">
           Click any room camera to view live feed and patient data

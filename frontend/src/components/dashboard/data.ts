@@ -178,7 +178,7 @@ export const initialMessages: AssistantMessage[] = [
   {
     id: 'welcome',
     role: 'assistant',
-    text: "Hello! I'm your AI clinical assistant. I can help you coordinate patient care, access medical records, and provide clinical insights. How can I assist you today?",
-    time: '05:03 AM',
+    text: "Hello! I'm Siren, How can I help?",
+    time: '10:00 AM',
   },
 ];
