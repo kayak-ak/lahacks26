@@ -78,7 +78,7 @@ export function VoiceBubble() {
     setPos(null);
   }, [isDragging, pos]);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
+  const handleClick = useCallback((_e: React.MouseEvent) => {
     if (!hasMoved.current) {
       toggleSession();
     }
