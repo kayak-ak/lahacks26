@@ -167,9 +167,12 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function localDateTimeValue(): string {
-  const d = new Date();
+function toLocalDateTimeValue(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function localDateTimeValue(): string {
+  return toLocalDateTimeValue(new Date());
 }
 
 function isNightShift(timeSlot: string): boolean {
@@ -509,8 +512,8 @@ export function HandoffPage() {
                   const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
                   setReportForm({
                     patient_id: allPatients[0]?.id ?? '',
-                    from_date: from.toISOString().slice(0, 16),
-                    to_date: now.toISOString().slice(0, 16),
+                    from_date: toLocalDateTimeValue(from),
+                    to_date: toLocalDateTimeValue(now),
                   });
                   setIsReportDialogOpen(true);
                 }}
@@ -761,8 +764,8 @@ export function HandoffPage() {
                       const from = new Date(now.getTime() - preset.hours * 60 * 60 * 1000);
                       setReportForm((prev) => ({
                         ...prev,
-                        from_date: from.toISOString().slice(0, 16),
-                        to_date: now.toISOString().slice(0, 16),
+                        from_date: toLocalDateTimeValue(from),
+                        to_date: toLocalDateTimeValue(now),
                       }));
                     }}
                     className="px-4 py-2 rounded-full text-sm font-semibold border border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
@@ -834,7 +837,8 @@ export function HandoffPage() {
                     },
                   });
                 } catch {
-                  // Supabase unavailable
+                  alert('Failed to request report — please try again later.');
+                  return;
                 }
 
                 alert('Report generation requested — AI agent will process this shortly');
