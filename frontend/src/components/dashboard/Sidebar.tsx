@@ -3,19 +3,15 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CubeIcon, MicrophoneIcon, PulseIcon, DocumentTextIcon, ClipboardListIcon } from './icons';
+import { CubeIcon, PulseIcon, DocumentTextIcon, ClipboardListIcon } from './icons';
 
 const navItems = [
   { label: 'Dashboard', icon: PulseIcon, href: '/dashboard', key: 'dashboard' },
-  { label: 'Voice', icon: MicrophoneIcon, href: '/voice', key: 'voice' },
   { label: 'Inventory', icon: CubeIcon, href: '/inventory', key: 'inventory' },
   { label: 'Logs', icon: DocumentTextIcon, href: '/logs', key: 'logs' },
   { label: 'Handoff', icon: ClipboardListIcon, href: '/handoff', key: 'handoff' },
 ];
 
-type SidebarProps = {
-  activeItem?: 'dashboard' | 'voice' | 'inventory' | 'logs' | 'handoff';
-};
 
 export function Sidebar() {
   const { pathname } = useLocation();
