@@ -1,0 +1,398 @@
+import type { SVGProps } from 'react';
+import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Sidebar } from '../components/dashboard/Sidebar';
+import { supabase } from '@/db/supabase';
+
+type RoundingLog = {
+  entered_at: string;
+  sanitized: boolean;
+  duration_sec: number;
+  notes: string;
+};
+
+type Alert = {
+  type: string;
+  priority: string;
+  message: string;
+  created_at: string;
+};
+
+type PatientAssignment = {
+  patient: { id: string; name: string; acuity_level: number; family_phone: string };
+  room: { id: string; number: string; status: string };
+  vitals: Record<string, string>;
+  rounding_logs: RoundingLog[];
+  alerts: Alert[];
+  tasks: string[];
+};
+
+type Shift = {
+  id: string;
+  nurse: { id: string; name: string; role: string; phone: string };
+  time_slot: string;
+  status: string;
+  patients: PatientAssignment[];
+};
+
+type HandoffData = {
+  shifts: Shift[];
+};
+
+// TODO: Remove mock data after database has been fully implemented and seeded
+const MOCK_HANDOFF: HandoffData = {
+  shifts: [
+    {
+      id: 'shift-1',
+      nurse: { id: 'n1', name: 'Sarah Chen', role: 'head_nurse', phone: '+15551001' },
+      time_slot: '07:00-15:00',
+      status: 'confirmed',
+      patients: [
+        {
+          patient: { id: 'p1', name: 'James Wilson', acuity_level: 3, family_phone: '+15552001' },
+          room: { id: 'r1', number: '101', status: 'occupied' },
+          vitals: { heartRate: '76 bpm', bloodPressure: '118/78 mmHg', temperature: '98.4\u00b0F', oxygen: '98%' },
+          rounding_logs: [
+            { entered_at: '2026-04-25T14:00:00Z', sanitized: true, duration_sec: 420, notes: 'Patient resting comfortably. Pain level 2/10.' },
+            { entered_at: '2026-04-25T13:00:00Z', sanitized: true, duration_sec: 300, notes: 'Administered medication. Vitals stable.' },
+            { entered_at: '2026-04-25T12:00:00Z', sanitized: true, duration_sec: 360, notes: 'Lunch served. Patient ate 75% of meal.' },
+          ],
+          alerts: [],
+          tasks: ['Follow-up labs at 16:00', 'Family update call pending'],
+        },
+        {
+          patient: { id: 'p2', name: 'Maria Garcia', acuity_level: 2, family_phone: '+15552002' },
+          room: { id: 'r2', number: '102', status: 'occupied' },
+          vitals: { heartRate: '82 bpm', bloodPressure: '121/80 mmHg', temperature: '98.8\u00b0F', oxygen: '97%' },
+          rounding_logs: [
+            { entered_at: '2026-04-25T14:15:00Z', sanitized: true, duration_sec: 480, notes: 'Wound dressing changed. Healing well.' },
+            { entered_at: '2026-04-25T13:10:00Z', sanitized: true, duration_sec: 240, notes: 'Physical therapy session completed.' },
+          ],
+          alerts: [],
+          tasks: ['Discharge paperwork review', 'Medication reconciliation'],
+        },
+      ],
+    },
+    {
+      id: 'shift-2',
+      nurse: { id: 'n2', name: 'Marcus Johnson', role: 'nurse', phone: '+15551002' },
+      time_slot: '07:00-15:00',
+      status: 'confirmed',
+      patients: [
+        {
+          patient: { id: 'p3', name: 'Robert Thompson', acuity_level: 4, family_phone: '+15552003' },
+          room: { id: 'r4', number: '104', status: 'occupied' },
+          vitals: { heartRate: '115 bpm', bloodPressure: '145/95 mmHg', temperature: '101.2\u00b0F', oxygen: '92%' },
+          rounding_logs: [
+            { entered_at: '2026-04-25T14:30:00Z', sanitized: true, duration_sec: 600, notes: 'Elevated HR and temp. Notified physician. Awaiting orders.' },
+            { entered_at: '2026-04-25T13:30:00Z', sanitized: true, duration_sec: 540, notes: 'Blood cultures drawn. IV antibiotics started.' },
+          ],
+          alerts: [
+            { type: 'vitals_warning', priority: 'high', message: 'Heart rate elevated >110 bpm for 2 hours', created_at: '2026-04-25T14:00:00Z' },
+            { type: 'temperature', priority: 'medium', message: 'Temperature 101.2\u00b0F \u2014 monitor for sepsis protocol', created_at: '2026-04-25T13:45:00Z' },
+          ],
+          tasks: ['Repeat vitals q30min', 'Physician callback pending', 'Blood culture results due'],
+        },
+        {
+          patient: { id: 'p4', name: 'Linda Patel', acuity_level: 1, family_phone: '+15552004' },
+          room: { id: 'r5', number: '201', status: 'occupied' },
+          vitals: { heartRate: '72 bpm', bloodPressure: '116/74 mmHg', temperature: '98.3\u00b0F', oxygen: '99%' },
+          rounding_logs: [
+            { entered_at: '2026-04-25T14:10:00Z', sanitized: true, duration_sec: 300, notes: 'Patient ambulating independently. Ready for discharge assessment.' },
+          ],
+          alerts: [],
+          tasks: ['Discharge assessment at 16:00', 'Transport arranged for 17:00'],
+        },
+      ],
+    },
+  ],
+};
+
+type ShiftTab = 'day' | 'night';
+
+function acuityColor(level: number): string {
+  if (level >= 4) return 'bg-red-50 text-red-600';
+  if (level === 3) return 'bg-amber-50 text-amber-600';
+  if (level === 2) return 'bg-blue-50 text-blue-600';
+  return 'bg-green-50 text-green-600';
+}
+
+function priorityColor(priority: string): string {
+  if (priority === 'high') return 'bg-red-50 text-red-600';
+  if (priority === 'medium') return 'bg-amber-50 text-amber-600';
+  return 'bg-blue-50 text-blue-600';
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function UserIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function HeartPulseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M3 12h4l2-5 4 10 3-6h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AlertTriangleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M12 3 3 20h18L12 3Zm0 6v4m0 4h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function HandoffPage() {
+  const [handoffData, setHandoffData] = useState<HandoffData>(MOCK_HANDOFF);
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [activeShiftTab, setActiveShiftTab] = useState<ShiftTab>('day');
+  const [expandedShift, setExpandedShift] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchHandoff() {
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';
+        const res = await fetch(`${API_BASE}/handoff?date=${selectedDate}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.shifts && data.shifts.length > 0) {
+            setHandoffData(data);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // Backend unavailable
+      }
+
+      try {
+        const { data: shifts } = await supabase
+          .from('shifts')
+          .select('*, nurses(*)')
+          .eq('date', selectedDate);
+
+        if (shifts && shifts.length > 0) {
+          const assembled: HandoffData = { shifts: [] };
+          for (const shift of shifts) {
+            assembled.shifts.push({
+              id: shift.id,
+              nurse: shift.nurses ?? { id: '', name: 'Unknown', role: '', phone: '' },
+              time_slot: shift.time_slot ?? '',
+              status: shift.status ?? 'unknown',
+              patients: [],
+            });
+          }
+          if (assembled.shifts.length > 0) {
+            setHandoffData(assembled);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // Supabase unavailable
+      }
+
+      // TODO: Remove fallback to mock data once Supabase is reliably seeded
+      setLoading(false);
+    }
+    fetchHandoff();
+  }, [selectedDate]);
+
+  const toggleShift = (shiftId: string) => {
+    setExpandedShift((prev) => (prev === shiftId ? null : shiftId));
+  };
+
+  return (
+    <div className="flex h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.05),transparent_40%),#ffffff] text-slate-900 p-3 gap-3 overflow-hidden">
+      <Sidebar activeItem="handoff" />
+      <div className="flex-1 rounded-2xl overflow-hidden border border-border/30 shadow-lg bg-white/80 backdrop-blur-sm h-full flex flex-col min-w-0">
+        <main className="flex flex-col gap-7 p-8 flex-1 overflow-auto min-h-0">
+          {/* Header */}
+          <section>
+            <h1 className="m-0 text-[clamp(2rem,2.4vw,2.875rem)] leading-[1.15] tracking-[-0.03em] text-slate-900">
+              Shift Handoff Board
+            </h1>
+            <p className="mt-2.5 mb-0 text-slate-500 text-[1.15rem]">
+              Review and accept patient handoffs between shifts
+            </p>
+          </section>
+
+          {/* Toolbar */}
+          <section className="flex items-center gap-4" aria-label="Handoff controls">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={activeShiftTab === 'day' ? 'default' : 'outline'}
+                className="min-h-[48px] px-6 text-sm font-semibold rounded-full shadow-sm"
+                onClick={() => setActiveShiftTab('day')}
+              >
+                Day Shift 7a-7p
+              </Button>
+              <Button
+                type="button"
+                variant={activeShiftTab === 'night' ? 'default' : 'outline'}
+                className="min-h-[48px] px-6 text-sm font-semibold rounded-full shadow-sm"
+                onClick={() => setActiveShiftTab('night')}
+              >
+                Night Shift 7p-7a
+              </Button>
+            </div>
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-auto min-h-[48px] px-4 rounded-full border-slate-200 shadow-sm"
+            />
+          </section>
+
+          {/* Shifts */}
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center text-slate-400">Loading...</div>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {handoffData.shifts.map((shift) => (
+                <Card
+                  key={shift.id}
+                  className="rounded-2xl border-border/50 shadow-lg bg-white/50 backdrop-blur-sm overflow-hidden"
+                >
+                  {/* Shift header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleShift(shift.id)}
+                    className="w-full flex items-center justify-between p-6 text-left hover:bg-blue-50/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="grid place-items-center w-12 h-12 rounded-2xl text-white bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
+                        <UserIcon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900">{shift.nurse.name}</h3>
+                        <p className="text-sm text-slate-500">
+                          {shift.nurse.role === 'head_nurse' ? 'Head Nurse' : 'Nurse'} &middot; {shift.time_slot}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="rounded-full border-0 bg-blue-50 text-blue-600 font-bold text-xs uppercase tracking-wider px-3 py-1">
+                        {shift.patients.length} patient{shift.patients.length !== 1 ? 's' : ''}
+                      </Badge>
+                      <Badge variant="outline" className={cn(
+                        'rounded-full border-0 font-bold text-xs uppercase tracking-wider px-3 py-1',
+                        shift.status === 'confirmed' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
+                      )}>
+                        {shift.status}
+                      </Badge>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className={cn('w-5 h-5 text-slate-400 transition-transform', expandedShift === shift.id && 'rotate-180')}
+                      >
+                        <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {/* Expanded patients */}
+                  {expandedShift === shift.id && (
+                    <div className="border-t border-slate-100 divide-y divide-slate-100">
+                      {shift.patients.map((pa) => (
+                        <div key={pa.patient.id} className="p-6 hover:bg-blue-50/20 transition-colors">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-semibold text-slate-900">{pa.patient.name}</span>
+                              <Badge variant="outline" className={cn('rounded-full border-0 font-bold text-xs uppercase tracking-wider px-2.5 py-0.5', acuityColor(pa.patient.acuity_level))}>
+                                Acuity {pa.patient.acuity_level}
+                              </Badge>
+                              <span className="text-sm text-slate-500">Room {pa.room.number}</span>
+                            </div>
+                            {pa.alerts.length > 0 && (
+                              <Badge variant="outline" className="rounded-full border-0 bg-red-50 text-red-600 font-bold text-xs uppercase tracking-wider px-3 py-1 gap-1">
+                                <AlertTriangleIcon className="w-3.5 h-3.5" />
+                                {pa.alerts.length} alert{pa.alerts.length !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Vitals */}
+                          {Object.keys(pa.vitals).length > 0 && (
+                            <div className="flex items-center gap-2 mb-4">
+                              <HeartPulseIcon className="w-4 h-4 text-blue-500" />
+                              <div className="flex gap-4 text-sm text-slate-600">
+                                {Object.entries(pa.vitals).map(([key, val]) => (
+                                  <span key={key}>
+                                    <span className="font-medium text-slate-700">{key}: </span>
+                                    {val}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Alerts */}
+                          {pa.alerts.length > 0 && (
+                            <div className="flex flex-col gap-2 mb-4">
+                              {pa.alerts.map((alert, i) => (
+                                <div key={i} className={cn('flex items-center gap-2 px-3 py-2 rounded-xl text-sm', priorityColor(alert.priority))}>
+                                  <AlertTriangleIcon className="w-4 h-4 shrink-0" />
+                                  <span>{alert.message}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Recent rounding */}
+                          {pa.rounding_logs.length > 0 && (
+                            <div className="mb-4">
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Recent Rounding</h4>
+                              <div className="flex flex-col gap-1.5">
+                                {pa.rounding_logs.map((log, i) => (
+                                  <div key={i} className="flex items-start gap-2 text-sm">
+                                    <span className="text-slate-400 shrink-0 w-16">{formatTime(log.entered_at)}</span>
+                                    <span className="text-slate-600">{log.notes}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Tasks */}
+                          {pa.tasks.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pending Tasks</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {pa.tasks.map((task, i) => (
+                                  <Badge key={i} variant="outline" className="rounded-full border-slate-200 text-slate-600 font-medium text-xs px-3 py-1">
+                                    {task}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
