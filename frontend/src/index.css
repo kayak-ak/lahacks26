@@ -110,3 +110,62 @@ input {
   width: 100%;
   min-height: 100vh;
 }
+
+@property --bubble-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --bubble-angle-reverse {
+  syntax: "<angle>";
+  initial-value: 360deg;
+  inherits: false;
+}
+
+@keyframes bubble-spin {
+  to { --bubble-angle: 360deg; }
+}
+
+@keyframes bubble-spin-reverse {
+  to { --bubble-angle-reverse: 0deg; }
+}
+
+.voice-bubble-bg {
+  background: conic-gradient(
+    from var(--bubble-angle),
+    #6aade6 0deg,
+    #cbf2f2 60deg,
+    #6aade655 120deg,
+    #cbf2f288 200deg,
+    #6aade6 360deg
+  );
+  animation: bubble-spin 4s linear infinite;
+}
+
+.voice-bubble-overlay {
+  background: conic-gradient(
+    from var(--bubble-angle-reverse),
+    #cbf2f288 0deg,
+    #6aade655 90deg,
+    #cbf2f2 180deg,
+    #6aade644 270deg,
+    #cbf2f288 360deg
+  );
+  mix-blend-mode: screen;
+  animation: bubble-spin-reverse 3s linear infinite;
+}
+
+.voice-bubble-static .voice-bubble-bg,
+.voice-bubble-static .voice-bubble-overlay {
+  animation-play-state: paused;
+}
+
+.voice-bubble-speaking .voice-bubble-bg {
+  animation-duration: 1.5s;
+}
+
+.voice-bubble-speaking .voice-bubble-overlay {
+  animation-duration: 1s;
+}
+
