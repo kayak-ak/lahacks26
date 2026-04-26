@@ -463,13 +463,13 @@ export function HandoffPage() {
   };
 
   const handleDeleteEvent = async (eventId: string) => {
+    setLoggedEvents((prev) => prev.filter((e) => e.id !== eventId));
     try {
       const { error } = await supabase.from('events').delete().eq('id', eventId);
       if (error) throw error;
     } catch {
-      // Continue with local removal even if Supabase delete fails
+      // Supabase delete failed — item already removed from local state
     }
-    setLoggedEvents((prev) => prev.filter((e) => e.id !== eventId));
   };
 
   return (
