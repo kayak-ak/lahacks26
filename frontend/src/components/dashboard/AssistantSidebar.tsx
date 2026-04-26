@@ -57,13 +57,12 @@ export function AssistantSidebar({
           return (
             <div key={message.id} className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
               <Card className={cn(
-                "max-w-[85%] p-3.5 px-4 pb-3 rounded-2xl shadow-sm border-transparent",
+                "max-w-[85%] p-2.5 rounded-2xl shadow-sm border-transparent",
                 isUser 
-                  ? "bg-blue-600 text-white rounded-tr-sm" 
-                  : "bg-slate-100 text-slate-800 rounded-tl-sm border-slate-200/50"
+                  ? "bg-blue-600 text-white" 
+                  : "bg-slate-100 text-slate-800 border-slate-200/50"
               )}>
-                <p className="m-0 text-[1.02rem] leading-[1.62]">{message.text}</p>
-                <time className={cn("block mt-1 text-[0.86rem] opacity-70")}>{message.time}</time>
+                <p className="m-0 text-sm leading-relaxed">{message.text}</p>
               </Card>
             </div>
           );
@@ -71,8 +70,8 @@ export function AssistantSidebar({
 
         {isLoading && (
           <div className="flex w-full justify-start">
-            <Card className="max-w-[85%] p-3.5 px-4 pb-3 bg-slate-100 text-slate-800 rounded-2xl rounded-tl-sm border-slate-200/50 shadow-sm border-transparent">
-              <p className="m-0 text-[1.02rem] leading-[1.62] animate-pulse">Thinking...</p>
+            <Card className="max-w-[85%] p-2.5 bg-slate-100 text-slate-800 rounded-2xl border-slate-200/50 shadow-sm border-transparent">
+              <p className="m-0 text-sm leading-relaxed animate-pulse">Thinking...</p>
             </Card>
           </div>
         )}
@@ -99,7 +98,7 @@ export function AssistantSidebar({
           >
             <PaperclipIcon className="w-3 h-3" />
             {selectedRoom.id}
-            {selectedRoom.patient ? ` · ${selectedRoom.patient}` : ''} · {selectedRoom.status}
+            {selectedRoom.patient ? ` · ${selectedRoom.patient}` : ''}
           </Badge>
 
           <Button
