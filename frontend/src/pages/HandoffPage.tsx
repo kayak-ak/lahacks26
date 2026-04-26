@@ -286,6 +286,30 @@ export function HandoffPage() {
     fetchHandoff();
   }, [selectedDate]);
 
+  useEffect(() => {
+    async function fetchEvents() {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Failed to fetch events:', error);
+        return;
+      }
+      const mapped: HandoffEvent[] = (data ?? []).map((row: { id: string; type: string; payload: Record<string, string> | null; created_at: string }) => ({
+        id: row.id,
+        patient_id: row.payload?.patient_id ?? '',
+        patient_name: row.payload?.patient_name ?? '',
+        event_type: row.type as EventType,
+        occurred_at: row.payload?.occurred_at ?? '',
+        notes: row.payload?.notes ?? '',
+        logged_at: row.created_at,
+      }));
+      setLoggedEvents(mapped);
+    }
+    fetchEvents();
+  }, []);
+
   const allPatients = useMemo(() => {
     const patients: { id: string; name: string }[] = [];
     for (const shift of handoffData.shifts) {
@@ -319,25 +343,49 @@ export function HandoffPage() {
     setIsEventDialogOpen(true);
   };
 
-  const handleSubmitEvent = () => {
+  const handleSubmitEvent = async () => {
     const patient = allPatients.find((p) => p.id === eventForm.patient_id);
     if (!patient || !eventForm.notes.trim()) return;
 
+    const { data, error } = await supabase
+      .from('events')
+      .insert({
+        type: eventForm.event_type,
+        payload: {
+          patient_id: eventForm.patient_id,
+          patient_name: patient.name,
+          notes: eventForm.notes.trim(),
+          occurred_at: new Date(eventForm.occurred_at).toISOString(),
+        },
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to insert event:', error);
+      return;
+    }
+
     const newEvent: HandoffEvent = {
-      id: `he-${Date.now()}`,
+      id: data.id,
       patient_id: eventForm.patient_id,
       patient_name: patient.name,
       event_type: eventForm.event_type,
       occurred_at: new Date(eventForm.occurred_at).toISOString(),
       notes: eventForm.notes.trim(),
-      logged_at: new Date().toISOString(),
+      logged_at: data.created_at,
     };
 
     setLoggedEvents((prev) => [newEvent, ...prev]);
     setIsEventDialogOpen(false);
   };
 
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string) => {
+    const { error } = await supabase.from('events').delete().eq('id', eventId);
+    if (error) {
+      console.error('Failed to delete event:', error);
+      return;
+    }
     setLoggedEvents((prev) => prev.filter((e) => e.id !== eventId));
   };
 
