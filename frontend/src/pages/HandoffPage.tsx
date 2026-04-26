@@ -167,6 +167,16 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function localDateTimeValue(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function isNightShift(timeSlot: string): boolean {
+  const start = parseInt(timeSlot.split('-')[0].replace(':', ''), 10);
+  return start >= 1900 || start < 700;
+}
+
 function UserIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -222,7 +232,7 @@ export function HandoffPage() {
   const [eventForm, setEventForm] = useState({
     patient_id: '',
     event_type: 'neutral' as EventType,
-    occurred_at: new Date().toISOString().slice(0, 16),
+    occurred_at: localDateTimeValue(),
     notes: '',
   });
 
@@ -288,6 +298,13 @@ export function HandoffPage() {
     return patients;
   }, [handoffData]);
 
+  const filteredShifts = useMemo(() => {
+    return handoffData.shifts.filter((shift) => {
+      const night = isNightShift(shift.time_slot);
+      return activeShiftTab === 'night' ? night : !night;
+    });
+  }, [handoffData, activeShiftTab]);
+
   const toggleShift = (shiftId: string) => {
     setExpandedShift((prev) => (prev === shiftId ? null : shiftId));
   };
@@ -296,7 +313,7 @@ export function HandoffPage() {
     setEventForm({
       patient_id: allPatients[0]?.id ?? '',
       event_type: 'neutral',
-      occurred_at: new Date().toISOString().slice(0, 16),
+      occurred_at: localDateTimeValue(),
       notes: '',
     });
     setIsEventDialogOpen(true);
@@ -432,7 +449,7 @@ export function HandoffPage() {
             <div className="flex-1 flex items-center justify-center text-slate-400">Loading...</div>
           ) : (
             <div className="flex flex-col gap-6">
-              {handoffData.shifts.map((shift) => (
+              {filteredShifts.map((shift) => (
                 <Card
                   key={shift.id}
                   className="rounded-2xl border-border/50 shadow-lg bg-white/50 backdrop-blur-sm overflow-hidden"
