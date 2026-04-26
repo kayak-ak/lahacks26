@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useChatStore } from '@/store/chatStore';
 import type { Room } from './data';
 import { PaperclipIcon, SendIcon, SparkleIcon } from './icons';
+import { MarkdownContent } from './MarkdownContent';
 
 type AssistantSidebarProps = {
   selectedRoom: Room | null;
@@ -110,6 +111,7 @@ export function AssistantSidebar({
       <div className="flex flex-col gap-4 p-6 overflow-y-auto overflow-x-hidden" style={{ minWidth: 0 }}>
         {messages.map((message) => {
           const isUser = message.role === 'user';
+          if (!isUser && message.text === '') return null;
           return (
             <div key={message.id} className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
               <Card className={cn(
@@ -118,7 +120,13 @@ export function AssistantSidebar({
                   ? "bg-blue-600 text-white" 
                   : "bg-slate-100 text-slate-800 border-slate-200/50"
               )}>
-                <p className="m-0 text-sm leading-relaxed break-words whitespace-pre-wrap">{message.text}</p>
+                {isUser ? (
+                  <p className="m-0 text-sm leading-relaxed">{message.text}</p>
+                ) : (
+                  <div className="text-sm leading-relaxed">
+                    <MarkdownContent content={message.text} />
+                  </div>
+                )}
               </Card>
             </div>
           );
