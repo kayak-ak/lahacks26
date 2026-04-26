@@ -827,7 +827,7 @@ export function HandoffPage() {
                 });
 
                 try {
-                  await supabase.from('events').insert({
+                  const { error } = await supabase.from('events').insert({
                     type: 'report_requested',
                     payload: {
                       patient_id: reportForm.patient_id,
@@ -836,6 +836,7 @@ export function HandoffPage() {
                       to_date: new Date(reportForm.to_date).toISOString(),
                     },
                   });
+                  if (error) throw error;
                 } catch {
                   alert('Failed to request report — please try again later.');
                   return;
