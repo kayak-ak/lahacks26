@@ -31,6 +31,8 @@ function App() {
       <Routes>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/logs" element={<LogsPage />} />
+        <Route path="/handoff" element={<HandoffPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       <VoiceBubble />
