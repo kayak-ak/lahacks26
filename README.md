@@ -225,6 +225,7 @@ VITE_CLOUDINARY_CLOUD_NAME=
 VITE_SUPABASE_URL=
 VITE_SUPABASE_PUBLISHABLE_KEY=
 VITE_ELEVENLABS_AGENT_ID=
+VITE_DEMO_MODE=               # Set to "true" to enable demo mode
 DATABASE_URL=
 ```
 
@@ -240,6 +241,42 @@ TWILIO_PHONE_NUMBER=
 SMS_AGENT_PORT=8001
 CHAT_AGENT_PORT=8002
 ```
+
+---
+
+## Demo Mode
+
+Demo mode replaces the live webcam with a prerecorded video so you can showcase the CV alerting pipeline without a camera.
+
+### Running the demo
+
+```bash
+# Terminal 1: Start the demo CV server (prerecorded video)
+cd backend
+DEMO_VIDEO_PATH=demo_videos/patient_demo.mp4 python demo_camera_ws_server.py
+
+# Terminal 2: Start the Flask API
+cd backend
+python app.py
+
+# Terminal 3: Start the frontend in demo mode
+cd frontend
+VITE_DEMO_MODE=true npm run dev
+```
+
+The demo server loops the video file and runs the same MediaPipe pose classification as the live server. When an ALERT status is detected (abnormal body position), a global notification banner appears on every page. Clicking "View Camera" opens the Room Detail modal with the live video feed and status.
+
+### Demo files
+
+| File | Purpose |
+|------|---------|
+| `backend/demo_camera_ws_server.py` | Video-file-based CV WebSocket server |
+| `backend/demo_videos/` | Directory for demo video files |
+| `frontend/src/store/demoAlertStore.ts` | Zustand store for global alert state |
+| `frontend/src/hooks/useDemoCVMonitor.ts` | Persistent background WebSocket hook |
+| `frontend/src/components/DemoAlertBanner.tsx` | Global notification toast component |
+
+Set `VITE_DEMO_MODE=true` in `frontend/.env` (or pass it inline) to enable. Without this flag, the production site is unaffected.
 
 ---
 
