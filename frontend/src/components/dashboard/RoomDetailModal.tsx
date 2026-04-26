@@ -221,7 +221,7 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         showCloseButton={false}
       >
         {/* Header */}
-        <DialogHeader className="flex-row shrink-0 items-center justify-between gap-4 p-6 border-b border-border bg-gradient-to-b from-blue-50/50 to-transparent space-y-0">
+        <DialogHeader className="flex-row shrink-0 items-center justify-between gap-4 p-3 border-b border-border bg-gradient-to-b from-blue-50/50 to-transparent space-y-0">
           <div>
             <DialogTitle className="text-2xl text-slate-900">{room.id}</DialogTitle>
             <DialogDescription className="mt-1.5 text-[1.08rem] text-slate-500 flex flex-col gap-0.5">
@@ -244,8 +244,8 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         </DialogHeader>
 
         {/* Content */}
-        <div className="flex flex-col flex-1 gap-6 p-6 overflow-y-auto bg-white min-h-0">
-          <div className="flex flex-col gap-2">
+        <div className="flex flex-col flex-1 gap-2 p-3 overflow-y-auto bg-white min-h-0">
+          <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2 w-[200px]">
                 <span className="text-sm font-semibold text-slate-700">Room Status:</span>
@@ -284,7 +284,7 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
               )}
             </div>
             {/* Live Stream Placeholder */}
-            <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[260px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+            <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[160px] sm:min-h-[200px] p-3 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
             
 
             {frameSrc ? (
@@ -294,7 +294,7 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
                 alt="Live camera feed"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center gap-2 text-slate-400 text-center w-full py-10">
+              <div className="flex flex-col items-center justify-center gap-1 text-slate-400 text-center w-full py-6">
                 <PulseIcon className="w-12 h-12 text-slate-300" />
                 <strong className="text-[1.15rem] font-medium text-slate-600">
                   {connected ? 'Connecting to camera...' : room.streamLabel}
@@ -308,9 +308,8 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
           </div>
 
           {/* Vital Signs */}
-          <section className="flex flex-col gap-4">
-            <h3 className="m-0 text-[1.75rem]">Vital Signs</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <section className="flex flex-col gap-0">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {metricCards.map((metric) => {
                 const Icon = metric.icon;
                 const value = room.vitals[metric.key];
@@ -319,16 +318,16 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
                   <Card
                     key={metric.key}
                     className={cn(
-                      'flex items-center gap-3 min-h-[86px] p-4 border-[rgba(0,0,0,0.02)] rounded-[18px] shadow-none',
+                      'flex items-center gap-3 min-h-[72px] p-3 border-[rgba(0,0,0,0.02)] rounded-[18px] shadow-none',
                       metric.bg
                     )}
                   >
-                    <div className={cn('grid place-items-center w-10 h-10 rounded-[14px]', metric.iconBg, metric.iconColor)}>
-                      <Icon className="w-5 h-5" />
+                    <div className={cn('grid place-items-center w-9 h-9 rounded-[12px]', metric.iconBg, metric.iconColor)}>
+                      <Icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="block text-[#6b7280] text-[0.84rem] leading-[1.2]">{metric.label}</span>
-                      <strong className="block mt-1 text-[1.15rem] leading-[1.2]">{value}</strong>
+                      <span className="block text-[#6b7280] text-[0.78rem] leading-[1.2]">{metric.label}</span>
+                      <strong className="block mt-0.5 text-[1.05rem] leading-[1.2]">{value}</strong>
                     </div>
                   </Card>
                 );
@@ -338,7 +337,7 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-col shrink-0 gap-4 p-4 px-6 pb-6 border-t border-[rgba(44,62,80,0.06)]">
+        <div className="flex flex-col shrink-0 gap-2 p-2.5 px-4 pb-3 border-t border-[rgba(44,62,80,0.06)]">
 
           {onSimulateVacancy && (
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
