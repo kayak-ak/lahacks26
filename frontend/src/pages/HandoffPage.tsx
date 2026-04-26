@@ -1,10 +1,18 @@
 import type { SVGProps } from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Sidebar } from '../components/dashboard/Sidebar';
 import { supabase } from '@/db/supabase';
 
@@ -42,6 +50,30 @@ type Shift = {
 type HandoffData = {
   shifts: Shift[];
 };
+
+type EventType = 'neutral' | 'alert' | 'critical' | 'observation' | 'medication';
+
+type HandoffEvent = {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  event_type: EventType;
+  occurred_at: string;
+  notes: string;
+  logged_at: string;
+};
+
+const EVENT_TYPES: { value: EventType; label: string; color: string }[] = [
+  { value: 'neutral', label: 'Neutral', color: 'bg-slate-50 text-slate-600' },
+  { value: 'observation', label: 'Observation', color: 'bg-blue-50 text-blue-600' },
+  { value: 'medication', label: 'Medication', color: 'bg-green-50 text-green-600' },
+  { value: 'alert', label: 'Alert', color: 'bg-amber-50 text-amber-600' },
+  { value: 'critical', label: 'Critical', color: 'bg-red-50 text-red-600' },
+];
+
+function eventTypeColor(type: EventType): string {
+  return EVENT_TYPES.find((t) => t.value === type)?.color ?? 'bg-slate-50 text-slate-600';
+}
 
 // TODO: Remove mock data after database has been fully implemented and seeded
 const MOCK_HANDOFF: HandoffData = {
@@ -131,6 +163,10 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 function UserIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -156,12 +192,39 @@ function AlertTriangleIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function PlusIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ClockIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 8v4l2.5 1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function HandoffPage() {
   const [handoffData, setHandoffData] = useState<HandoffData>(MOCK_HANDOFF);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [activeShiftTab, setActiveShiftTab] = useState<ShiftTab>('day');
   const [expandedShift, setExpandedShift] = useState<string | null>(null);
+
+  // Event logging state
+  const [loggedEvents, setLoggedEvents] = useState<HandoffEvent[]>([]);
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [eventForm, setEventForm] = useState({
+    patient_id: '',
+    event_type: 'neutral' as EventType,
+    occurred_at: new Date().toISOString().slice(0, 16),
+    notes: '',
+  });
 
   useEffect(() => {
     async function fetchHandoff() {
@@ -213,8 +276,52 @@ export function HandoffPage() {
     fetchHandoff();
   }, [selectedDate]);
 
+  const allPatients = useMemo(() => {
+    const patients: { id: string; name: string }[] = [];
+    for (const shift of handoffData.shifts) {
+      for (const pa of shift.patients) {
+        if (!patients.some((p) => p.id === pa.patient.id)) {
+          patients.push({ id: pa.patient.id, name: pa.patient.name });
+        }
+      }
+    }
+    return patients;
+  }, [handoffData]);
+
   const toggleShift = (shiftId: string) => {
     setExpandedShift((prev) => (prev === shiftId ? null : shiftId));
+  };
+
+  const openEventDialog = () => {
+    setEventForm({
+      patient_id: allPatients[0]?.id ?? '',
+      event_type: 'neutral',
+      occurred_at: new Date().toISOString().slice(0, 16),
+      notes: '',
+    });
+    setIsEventDialogOpen(true);
+  };
+
+  const handleSubmitEvent = () => {
+    const patient = allPatients.find((p) => p.id === eventForm.patient_id);
+    if (!patient || !eventForm.notes.trim()) return;
+
+    const newEvent: HandoffEvent = {
+      id: `he-${Date.now()}`,
+      patient_id: eventForm.patient_id,
+      patient_name: patient.name,
+      event_type: eventForm.event_type,
+      occurred_at: new Date(eventForm.occurred_at).toISOString(),
+      notes: eventForm.notes.trim(),
+      logged_at: new Date().toISOString(),
+    };
+
+    setLoggedEvents((prev) => [newEvent, ...prev]);
+    setIsEventDialogOpen(false);
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    setLoggedEvents((prev) => prev.filter((e) => e.id !== eventId));
   };
 
   return (
@@ -233,7 +340,7 @@ export function HandoffPage() {
           </section>
 
           {/* Toolbar */}
-          <section className="flex items-center gap-4" aria-label="Handoff controls">
+          <section className="flex items-center gap-4 flex-wrap" aria-label="Handoff controls">
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -258,7 +365,67 @@ export function HandoffPage() {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-auto min-h-[48px] px-4 rounded-full border-slate-200 shadow-sm"
             />
+            <div className="ml-auto">
+              <Button
+                type="button"
+                onClick={openEventDialog}
+                className="min-h-[48px] px-6 text-sm font-semibold rounded-full shadow-sm gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+              >
+                <PlusIcon className="w-4 h-4" />
+                Log Event
+              </Button>
+            </div>
           </section>
+
+          {/* Logged Events */}
+          {loggedEvents.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Logged Events
+                  <Badge variant="outline" className="ml-2 rounded-full border-0 bg-blue-50 text-blue-600 font-bold text-xs uppercase tracking-wider px-2.5 py-0.5">
+                    {loggedEvents.length}
+                  </Badge>
+                </h2>
+              </div>
+              <Card className="rounded-2xl border-border/50 shadow-lg bg-white/50 backdrop-blur-sm overflow-hidden divide-y divide-slate-100">
+                {loggedEvents.map((event) => (
+                  <div key={event.id} className="flex items-start gap-4 p-4 hover:bg-blue-50/20 transition-colors">
+                    <div className={cn('grid place-items-center w-10 h-10 rounded-xl shrink-0', eventTypeColor(event.event_type))}>
+                      {event.event_type === 'critical' || event.event_type === 'alert' ? (
+                        <AlertTriangleIcon className="w-4.5 h-4.5" />
+                      ) : (
+                        <ClockIcon className="w-4.5 h-4.5" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-slate-900">{event.patient_name}</span>
+                        <Badge variant="outline" className={cn('rounded-full border-0 font-bold text-[0.7rem] uppercase tracking-wider px-2 py-0.5', eventTypeColor(event.event_type))}>
+                          {event.event_type}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-1">{event.notes}</p>
+                      <span className="text-xs text-slate-400">
+                        Occurred: {formatDateTime(event.occurred_at)} &middot; Logged: {formatDateTime(event.logged_at)}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="shrink-0 w-8 h-8 p-0 text-slate-400 hover:text-red-500 rounded-lg"
+                      onClick={() => handleDeleteEvent(event.id)}
+                      aria-label="Delete event"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+                        <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </Button>
+                  </div>
+                ))}
+              </Card>
+            </section>
+          )}
 
           {/* Shifts */}
           {loading ? (
@@ -393,6 +560,108 @@ export function HandoffPage() {
           )}
         </main>
       </div>
+
+      {/* Log Event Dialog */}
+      <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
+        <DialogContent className="sm:max-w-[480px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Log Patient Event</DialogTitle>
+            <DialogDescription>
+              Record a manual event for a patient. This will be included in handoff reports.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-5 py-2">
+            {/* Patient select */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="event-patient" className="text-sm font-medium text-slate-700">
+                Patient
+              </label>
+              <select
+                id="event-patient"
+                value={eventForm.patient_id}
+                onChange={(e) => setEventForm((prev) => ({ ...prev, patient_id: e.target.value }))}
+                className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+              >
+                {allPatients.length === 0 && <option value="">No patients available</option>}
+                {allPatients.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Event type */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-slate-700">Event Type</label>
+              <div className="flex gap-2 flex-wrap">
+                {EVENT_TYPES.map((type) => (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setEventForm((prev) => ({ ...prev, event_type: type.value }))}
+                    className={cn(
+                      'px-4 py-2 rounded-full text-sm font-semibold border transition-all',
+                      eventForm.event_type === type.value
+                        ? cn(type.color, 'border-current ring-2 ring-current/20')
+                        : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                    )}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time occurred */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="event-time" className="text-sm font-medium text-slate-700">
+                Time Occurred
+              </label>
+              <Input
+                id="event-time"
+                type="datetime-local"
+                value={eventForm.occurred_at}
+                onChange={(e) => setEventForm((prev) => ({ ...prev, occurred_at: e.target.value }))}
+                className="rounded-xl border-slate-200 shadow-sm"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="event-notes" className="text-sm font-medium text-slate-700">
+                Notes
+              </label>
+              <textarea
+                id="event-notes"
+                value={eventForm.notes}
+                onChange={(e) => setEventForm((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="Describe what happened..."
+                rows={3}
+                className="flex w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEventDialogOpen(false)}
+              className="rounded-full"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSubmitEvent}
+              disabled={!eventForm.patient_id || !eventForm.notes.trim()}
+              className="rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+            >
+              Log Event
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
