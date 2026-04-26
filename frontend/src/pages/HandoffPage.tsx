@@ -291,6 +291,7 @@ export function HandoffPage() {
       const { data, error } = await supabase
         .from('events')
         .select('*')
+        .in('type', ['neutral', 'alert', 'critical', 'observation', 'medication'])
         .order('created_at', { ascending: false });
       if (error) {
         console.error('Failed to fetch events:', error);
