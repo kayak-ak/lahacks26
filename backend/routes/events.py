@@ -1,5 +1,9 @@
+import logging
+
 from flask import Blueprint, jsonify, request
 from db import supabase
+
+logger = logging.getLogger(__name__)
 
 events_bp = Blueprint("events", __name__)
 
@@ -32,7 +36,7 @@ def list_events():
         if result.data:
             return jsonify(result.data)
     except Exception:
-        pass
+        logger.exception("Failed to fetch events from Supabase")
 
     # TODO: Remove fallback to mock data once Supabase events table is reliably populated
     filtered = MOCK_EVENTS
@@ -50,7 +54,7 @@ def event_stats():
             counts = Counter(row["type"] for row in result.data)
             return jsonify({"total": len(result.data), "by_type": dict(counts)})
     except Exception:
-        pass
+        logger.exception("Failed to fetch event stats from Supabase")
 
     # TODO: Remove fallback to mock data once Supabase events table is reliably populated
     from collections import Counter

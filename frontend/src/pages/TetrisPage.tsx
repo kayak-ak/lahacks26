@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react';
 import { useEffect, useRef } from 'react';
 import { useTetris } from '../hooks/useTetris';
 import { TetrisBoard } from '../components/tetris/TetrisBoard';
@@ -31,8 +32,7 @@ export function TetrisPage() {
     gameRef.current?.focus();
   }, []);
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (gameOver && score === 0) return; 
+  const onKeyDown = (e: KeyboardEvent) => {
     if (gameOver) return;
 
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Shift"].includes(e.code)) {
@@ -74,7 +74,7 @@ export function TetrisPage() {
     }
   };
 
-  const onKeyUp = (e: React.KeyboardEvent) => {
+  const onKeyUp = (e: KeyboardEvent) => {
     if (['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.code)) {
       gameHandleKeyUp(e.code);
     }

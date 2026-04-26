@@ -144,8 +144,11 @@ export const useTetris = () => {
 
   const drop = useCallback(() => {
     if (rows > (level + 1) * 10) {
-      setLevel((prev) => prev + 1);
-      setDropTime(Math.max(100, 1000 - (level * 50)));
+      setLevel((prev) => {
+        const newLevel = prev + 1;
+        setDropTime(Math.max(100, 1000 - (newLevel * 50)));
+        return newLevel;
+      });
     }
 
     setPlayer((prev) => {
@@ -227,9 +230,28 @@ export const useTetris = () => {
     });
   }, [board]);
 
-  const clearLines = useCallback(() => {
+  useEffect(() => {
+    if (!player.collided) return;
+
+    if (player.pos.y <= 0) {
+      setGameOver(true);
+      setDropTime(null);
+      return;
+    }
+
+    const mergedBoard = board.map((row) => [...row]);
+    player.tetromino.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value !== 0) {
+          if (mergedBoard[y + player.pos.y] && mergedBoard[y + player.pos.y][x + player.pos.x]) {
+             mergedBoard[y + player.pos.y][x + player.pos.x] = [value, 'merged'];
+          }
+        }
+      });
+    });
+
     let linesCleared = 0;
-    const newBoard = board.reduce((acc, row) => {
+    const clearedBoard = mergedBoard.reduce((acc, row) => {
       if (row.findIndex((cell) => cell[0] === 0) === -1) {
         linesCleared += 1;
         acc.unshift(new Array(10).fill([0, 'clear']));
@@ -237,40 +259,20 @@ export const useTetris = () => {
       }
       acc.push(row);
       return acc;
-    }, [] as any[][]);
+    }, [] as typeof mergedBoard);
 
     if (linesCleared > 0) {
-      setBoard(newBoard);
+      setBoard(clearedBoard);
       setRows(prev => prev + linesCleared);
       const linePoints = [0, 100, 300, 500, 800];
       setScore(prev => prev + linePoints[linesCleared] * level);
-    }
-  }, [board, level]);
-
-  useEffect(() => {
-    if (!player.collided) return;
-
-    if (player.pos.y <= 0) {
-      setGameOver(true);
-      setDropTime(null);
+    } else {
+      setBoard(mergedBoard);
     }
 
-    const newBoard = board.map((row) => [...row]);
-    player.tetromino.forEach((row, y) => {
-      row.forEach((value, x) => {
-        if (value !== 0) {
-          if (newBoard[y + player.pos.y] && newBoard[y + player.pos.y][x + player.pos.x]) {
-             newBoard[y + player.pos.y][x + player.pos.x] = [value, 'merged'];
-          }
-        }
-      });
-    });
-
-    setBoard(newBoard);
     resetPlayer();
-    clearLines();
 
-  }, [player.collided, board, clearLines, player.pos.x, player.pos.y, player.tetromino, resetPlayer]);
+  }, [player.collided, board, player.pos.x, player.pos.y, player.tetromino, resetPlayer, level]);
 
   const updateGame = useCallback((time: number) => {
     if (gameOver || isPaused) {

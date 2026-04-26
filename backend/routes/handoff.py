@@ -1,6 +1,10 @@
+import logging
+
 from flask import Blueprint, jsonify, request
 from datetime import date as date_type
 from db import supabase
+
+logger = logging.getLogger(__name__)
 
 handoff_bp = Blueprint("handoff", __name__)
 
@@ -90,6 +94,21 @@ def get_handoff():
 
                 patients_list = []
                 if status_result.data:
+                    room_ids = [ns.get("current_room_id") for ns in status_result.data if ns.get("current_room_id")]
+
+                    rounding_by_room: dict = {}
+                    alerts_by_room: dict = {}
+                    if room_ids:
+                        rounding_result = supabase.table("rounding_logs").select("*").in_("room_id", room_ids).order("entered_at", desc=True).execute()
+                        for log in (rounding_result.data or []):
+                            rid = log.get("room_id")
+                            rounding_by_room.setdefault(rid, []).append(log)
+
+                        alerts_result = supabase.table("alerts").select("*").in_("room_id", room_ids).is_("resolved_at", "null").order("created_at", desc=True).execute()
+                        for alert in (alerts_result.data or []):
+                            rid = alert.get("room_id")
+                            alerts_by_room.setdefault(rid, []).append(alert)
+
                     for ns in status_result.data:
                         patient = ns.get("patients")
                         room = ns.get("rooms")
@@ -97,12 +116,8 @@ def get_handoff():
                             continue
 
                         room_id = ns.get("current_room_id")
-
-                        rounding_result = supabase.table("rounding_logs").select("*").eq("room_id", room_id).order("entered_at", desc=True).limit(3).execute() if room_id else None
-                        rounding_logs = rounding_result.data if rounding_result and rounding_result.data else []
-
-                        alerts_result = supabase.table("alerts").select("*").eq("room_id", room_id).is_("resolved_at", "null").order("created_at", desc=True).execute() if room_id else None
-                        alerts = alerts_result.data if alerts_result and alerts_result.data else []
+                        rounding_logs = rounding_by_room.get(room_id, [])[:3]
+                        alerts = alerts_by_room.get(room_id, [])
 
                         patients_list.append({
                             "patient": patient,
@@ -124,7 +139,7 @@ def get_handoff():
             if handoff_data["shifts"]:
                 return jsonify(handoff_data)
     except Exception:
-        pass
+        logger.exception("Failed to fetch handoff data from Supabase (date=%s)", target_date)
 
     # TODO: Remove fallback to mock data once Supabase is reliably seeded
     return jsonify(MOCK_HANDOFF)
@@ -145,5 +160,6 @@ def accept_handoff():
         log_event("handoff_accepted", {"shift_id": shift_id, "nurse_id": nurse_id})
         return jsonify({"status": "accepted", "shift": result.data[0] if result.data else {}})
     except Exception:
+        logger.exception("Failed to accept handoff (shift_id=%s, nurse_id=%s)", shift_id, nurse_id)
         # TODO: Remove mock response once Supabase is reliably connected
         return jsonify({"status": "accepted", "shift_id": shift_id, "mock": True})
