@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConversationProvider } from '@elevenlabs/react';
+import { Toaster } from '@/components/ui/sonner';
 
 import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
@@ -40,6 +41,7 @@ function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       <VoiceBubble />
+      <Toaster position="bottom-right" richColors />
     </ConversationProvider>
   );
 }
