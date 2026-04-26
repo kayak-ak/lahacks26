@@ -13,7 +13,6 @@ import {
 import type { Room } from './data';
 import {
   PulseIcon,
-  SendIcon,
 } from './icons';
 
 const WS_URL = 'ws://localhost:8765';
@@ -125,28 +124,31 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
   const [connected, setConnected] = useState(false);
   const [vacancyTimer, setVacancyTimer] = useState(5000);
   const [cvFrameStatus, setCvFrameStatus] = useState<'normal' | 'alert' | 'vacant' | null>(null);
-  const [roomOccupancy, setRoomOccupancy] = useState<'filled' | 'vacant'>(room.status === 'vacant' ? 'vacant' : 'filled');
-  const [patientStatus, setPatientStatus] = useState<'normal' | 'alert' | null>(null);
+  const [vacancyConfirmed, setVacancyConfirmed] = useState(false);
+  const lastOccupiedStatus = useRef<'normal' | 'alert'>('normal');
   const wsRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    if (cvFrameStatus === 'normal' || cvFrameStatus === 'alert') {
-      setPatientStatus(cvFrameStatus);
-      setRoomOccupancy('filled');
-    }
-  }, [cvFrameStatus]);
+  // Derive the displayed status: hold last occupied status until vacancy is confirmed
+  const displayStatus: 'normal' | 'alert' | 'vacant' | null =
+    vacancyConfirmed ? 'vacant' :
+    cvFrameStatus === 'vacant' ? lastOccupiedStatus.current :
+    cvFrameStatus;
+
+  console.log('[RoomDetailModal] cvFrameStatus:', cvFrameStatus, 'vacancyConfirmed:', vacancyConfirmed, 'lastOccupied:', lastOccupiedStatus.current, '→ displayStatus:', displayStatus);
 
   // Auto-vacancy effect
   useEffect(() => {
     if (cvFrameStatus === 'vacant') {
+      setVacancyConfirmed(false);
       const timer = setTimeout(() => {
-        setRoomOccupancy('vacant');
-        setPatientStatus(null);
+        setVacancyConfirmed(true);
         if (onSimulateVacancy) {
           onSimulateVacancy(room.id, 0);
         }
       }, vacancyTimer);
       return () => clearTimeout(timer);
+    } else {
+      setVacancyConfirmed(false);
     }
   }, [cvFrameStatus, vacancyTimer, onSimulateVacancy, room.id]);
 
@@ -161,10 +163,15 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
 
     ws.onmessage = (event: MessageEvent) => {
       if (typeof event.data === 'string') {
+        console.log('[RoomDetailModal] WS string message:', event.data);
         try {
           const parsed = JSON.parse(event.data);
           if (parsed.status) {
             const s = parsed.status.toLowerCase() as 'normal' | 'alert' | 'vacant';
+            console.log('[RoomDetailModal] Parsed status:', s);
+            if (s === 'normal' || s === 'alert') {
+              lastOccupiedStatus.current = s;
+            }
             setCvFrameStatus(s);
           }
         } catch { /* ignore malformed JSON */ }
@@ -240,48 +247,41 @@ export function RoomDetailModal({ room, onClose, onSimulateVacancy }: RoomDetail
         <div className="flex flex-col flex-1 gap-6 p-6 overflow-y-auto bg-white min-h-0">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-[200px]">
                 <span className="text-sm font-semibold text-slate-700">Room Status:</span>
-                <span className={cn(
-                  "text-sm font-semibold capitalize px-2.5 py-0.5 rounded-full border transition-all duration-300",
-                  roomOccupancy === 'vacant' ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                )}>
-                  {roomOccupancy}
-                </span>
+                {cvFrameStatus === null ? (
+                  <span className="text-sm text-slate-400 italic px-2.5 py-0.5 rounded-full border border-slate-200 bg-slate-50">
+                    Scanning...
+                  </span>
+                ) : cvFrameStatus === 'vacant' ? (
+                  <span className="text-sm font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-300 bg-slate-50 text-slate-500 border-slate-200">
+                    Vacant
+                  </span>
+                ) : (
+                  <span className="text-sm font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-300 bg-green-50 text-green-700 border-green-200">
+                    Occupied
+                  </span>
+                )}
               </div>
-              
-              {roomOccupancy === 'filled' && (
+
+              {cvFrameStatus !== null && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-slate-700">Patient Status:</span>
-                  {patientStatus === null ? (
-                    <span className="text-sm text-slate-400 italic">Scanning...</span>
+                  {cvFrameStatus === 'vacant' ? (
+                    <span className="text-sm font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-300 bg-slate-50 text-slate-500 border-slate-200">
+                      Unavailable
+                    </span>
+                  ) : cvFrameStatus === 'alert' ? (
+                    <span className="text-sm font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-300 bg-red-50 text-red-700 border-red-200">
+                      ⚠ Abnormal body position detected
+                    </span>
                   ) : (
-                    <span className={cn(
-                      "text-sm font-semibold capitalize px-2.5 py-0.5 rounded-full border transition-all duration-300",
-                      patientStatus === 'alert' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
-                      'bg-green-50 text-green-700 border-green-200'
-                    )}>
-                      {patientStatus}
+                    <span className="text-sm font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-300 bg-green-50 text-green-700 border-green-200">
+                      Patient resting normally
                     </span>
                   )}
                 </div>
               )}
-
-              <div className="ml-auto flex items-center">
-                {roomOccupancy === 'vacant' ? (
-                  <span className="text-xs text-slate-400">
-                    No patient detected in room
-                  </span>
-                ) : patientStatus === 'alert' ? (
-                  <span className="text-xs text-red-600 font-medium">
-                    ⚠ Abnormal body position detected
-                  </span>
-                ) : patientStatus === 'normal' ? (
-                  <span className="text-xs text-green-600">
-                    Patient resting normally
-                  </span>
-                ) : null}
-              </div>
             </div>
             {/* Live Stream Placeholder */}
             <section className="relative shrink-0 flex flex-col items-center justify-center min-h-[200px] sm:min-h-[260px] p-4 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
